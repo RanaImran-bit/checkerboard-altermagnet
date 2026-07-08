@@ -1,0 +1,24 @@
+# chi_zz(q) finite-T gate: 2x2 U=4.0 mu=2.0 beta=2.0 tam=0.0 t1=0.0 tp=0.0
+  ED    density=1.00000
+  DQMC  density=1.00000  <sign>=1.0000  (NT=32)
+  CPfree density=1.00000  <sign>=1.0000  npaths=2400  (L=16, dt=0.125)
+  CPcons density=1.00000  <sign>=1.0000  npaths=2400  (L=16, dt=0.125)
+
+  chi_zz(q)  [per site]
+        q         ED      DQMC    CPfree    CPcons
+  (0,0)     0.1905    0.1912    0.1850    0.1850
+  (0,1)     0.0936    0.0926    0.0940    0.0940
+  (1,0)     0.0936    0.0938    0.0982    0.0982
+  (1,1)     0.4122    0.4190    0.4298    0.4298
+
+  S^z(q)  [equal-time, per site]
+        q         ED      DQMC    CPfree    CPcons
+  (0,0)     0.0952    0.0956    0.0925    0.0925
+  (0,1)     0.1451    0.1455    0.1476    0.1476
+  (1,0)     0.1451    0.1463    0.1452    0.1452
+  (1,1)     0.3263    0.3299    0.3377    0.3377
+
+  CP bias (constrained, informational): max|dev| = 0.0176 (4.3% of ED max), <sign> = 1.0000
+
+PASS: exact methods within max(10% ED, 0.02) at every q
+wrote results/chi_spin_bench/ft_2x2_tam0.json

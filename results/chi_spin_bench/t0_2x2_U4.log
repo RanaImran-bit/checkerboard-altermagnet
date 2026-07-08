@@ -1,0 +1,10 @@
+# chi_zz(q) T=0 gate: 2x2 nup=2 ndn=2 U=4.0 tam=0.0 t1=0.0 tp=0.0  (bp=20, dt=0.01, window tau<=0.20)
+ q=(kx,ky)  ED chi_win   CPMC chi      +/-      z    ED C(0)  CPMC C(0)
+  (0,0)        0.0000     0.0000   0.0000   1.31     0.0000    -0.0000
+  (0,1)        0.0214    -0.0063   0.0004  62.56     0.1450    -0.0414   << FAIL
+  (1,0)        0.0214     0.0765   0.0006  98.54     0.1450     0.4864   << FAIL
+  (1,1)        0.0841     0.0347   0.0003 160.36     0.4834     0.2387   << FAIL
+
+FAIL: 1/4 q-points within max(3.0 sigma, 5% ED)  [chi window 0..0.20]
+(pi,pi) cross-check vs validate_chi convention: N*chi_q = 0.1387 (ED windowed 0.3364, ED full 5.3450)
+wrote results/chi_spin_bench/t0_2x2_U4.json
