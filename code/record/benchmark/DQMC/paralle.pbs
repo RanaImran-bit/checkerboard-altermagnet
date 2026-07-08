@@ -1,0 +1,11 @@
+#!/bin/sh -f
+#PBS  -N n1l0u4
+#PBS -l vmem=64g
+#PBS -l nodes=1:ppn=12
+#PBS -q gentai
+
+nprocs=`wc -l < $PBS_NODEFILE`
+cd $PBS_O_WORKDIR
+
+
+mpirun -np $nprocs -hostfile $PBS_NODEFILE ./SOCh.exe > out.log

@@ -1,0 +1,42 @@
+name: qmc-platform
+channels:
+  - conda-forge
+dependencies:
+  # ---- Python (pinned: QuSpin has no wheels for 3.12+) ----
+  - python=3.11
+
+  # ---- Fortran + MPI + BLAS toolchain (supplies the missing MPI) ----
+  - fortran-compiler        # gfortran (conda-forge, arch-matched)
+  - openmpi                 # provides mpif90 / mpirun
+  - openblas
+  - liblapack
+  - make
+
+  # ---- Exact diagonalization reference ----
+  # NB: QuSpin 1.x is installed via pip below — the conda 'weinbe58' channel
+  # tops out at py3.10/osx-64 (no arm64), whereas PyPI ships native
+  # osx-arm64 cp311 wheels (quspin -> quspin-extensions compiled core).
+  - numpy>=2.0
+  - scipy>=1.13
+  - numba>=0.60          # required by quspin 1.x
+
+  # ---- Validation platform: backend + analysis ----
+  - fastapi
+  - uvicorn
+  - pydantic
+  - pandas
+  - pyarrow                 # parquet for the common-schema results
+  - matplotlib
+  - requests
+
+  # ---- Frontend tooling (React + Vite) ----
+  - nodejs
+
+  # ---- Dev / test ----
+  - pytest
+  - ruff
+
+  # ---- pip-only packages ----
+  - pip
+  - pip:
+      - quspin==1.0.1     # native osx-arm64/cp311 wheels via PyPI

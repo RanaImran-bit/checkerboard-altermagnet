@@ -1,0 +1,28 @@
+ Init relax:           8          18          10          19          51
+ equilibrate:           1
+ equilibrate:           2
+ equilibrate:           3
+ equilibrate:           4
+ equilibrate:           5
+ equilibrate:           6
+ equilibrate:           7
+ equilibrate:           8
+ equilibrate:           9
+ equilibrate:          10
+ End relax and Init growth:          18          10          20          27
+ End growth and start Runmeas:          18          10          20          28
+ back step:           1
+ back step:           2
+ back step:           3
+ back step:           4
+ back step:           5
+ back step:           6
+ back step:           7
+ back step:           8
+ back step:           9
+ back step:          10
+ End Runmeas:          18          10          22          58
+ Elapsed time for rank 0 (seconds):   186.3761     second
+ time  0.0000000E+00 month  0.0000000E+00 day  0.0000000E+00 hour   3.000000    
+ min   7.000000     second
+ time_sec   187.0000     second

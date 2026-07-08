@@ -1,0 +1,5 @@
+# heavy run artifacts; keep small .txt/.md summaries
+results/*.csv
+results/*.npy
+results/*.npz
+__pycache__/

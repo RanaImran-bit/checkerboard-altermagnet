@@ -1,0 +1,29 @@
+ ============= ONE BAND Hubbard Model========
+       lattice size=   16       up=    1     down=    1      tam=0.000
+  alphat1=0.000
+       Ud=   3.00000        t=   1.00000       t1=   0.00000      vpd=   0.00000
+ --------------Parameters--------------------
+ Time Slice is--------------------:  1.000000000000000E-002
+ Variational energy---------------:  -7.81250000000000     
+ Block number of Equilibration----:          10
+ Block number of Growth Estimation:           3
+ Block number of Measurement------:          10
+ Steps of Each Block--------------:         320
+ Pop frequency of Equilibration---:          10
+ Pop frequency of Measurement-----:          20
+ Orthogonalization frequency------:          10
+ STEPMEAS Energy steps------------:          40
+ BACK PROPAGATION STEPS-----------:          40
+ --------------------------------------------
+ expection value of spin UP electrons=           0
+ expection value of spin DN electrons=           0
+Mixed Energy=   0.000000 with error   0.000083
+ ********back propagation results:
+                                  
+ Charge__up:  6.250000000000000E-002  0.000000000000000E+000
+ Charge__dn:  6.250000000000000E-002  0.000000000000000E+000
+ magnetic moment:  0.121010924830750       5.345674720009619E-006
+ kinetic energy:  -7.95961323595493       2.679207755856010E-003
+ potential energy:  9.573780406199134E-002  1.282961944085031E-004
+ total energy:  -7.86387543189295       2.586128587346810E-003
+ total energy per N: -0.491492214493309       1.616330367091756E-004

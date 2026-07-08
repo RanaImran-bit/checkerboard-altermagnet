@@ -1,0 +1,49 @@
+# ---- Build artifacts (Fortran) ----
+*.o
+*.mod
+*.smod
+*.a
+*.x
+a.out
+# compiled executables produced by the Makefiles
+cp
+CPMCH
+BSS
+
+# ---- Build & run outputs ----
+nohup.out
+fort.*
+*.job.o*
+results/
+build/
+# scheduler / queue logs
+*.pbs.o*
+
+# ---- macOS ----
+.DS_Store
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+.venv/
+env/
+
+# ---- Node / frontend ----
+node_modules/
+dist/
+.vite/
+
+# ---- Conda env (if created inside repo) ----
+/envs/
+
+# ---- Bundled micromamba binary (fetched per-machine, see docs/ENVIRONMENT.md) ----
+/.tools/
+
+# NOTE: input/reference .dat files under record/ are intentionally tracked
+# (they are part of the frozen baseline). Only generated outputs are ignored
+# via the patterns above.
+
+# ---- bundled source archive ----
+*.zip

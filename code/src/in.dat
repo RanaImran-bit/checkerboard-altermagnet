@@ -1,0 +1,21 @@
+0,0,2,40
+10,10,10,10,10
+0.010000,-50.000000
+in.dat
+-1.000000,-1.00000,-1.000000,-1.00000,0.1
+1.00000000,1.000000,0.100000
+0.000000,0.000000
+1.000000
+1.000000
+
+!======================================!
+
+nblkeq,nblkgr,nblk,nblkstps  10 2 10 320
+itvlpceq,itvlpc,itvlorth,itvlmeas,itvl_m
+deltau,etrial
+infile
+t1,t2,t3,t4
+uxx,uxy,v
+g_ph,w_ph
+cwfbas
+cwibas
