@@ -751,9 +751,12 @@ class Estimators:
         using the same particle/hole time-displaced GFs P^s(tau)=B_(l)(I-g^sT),
         H^s(tau)=B_(l)^{-T} g^s and equal-time g^s(tau)=B^{-T} g B^{T} as chi_block
         (chi_block's scalar == phase^T M_l phase, bit-checked in the validator).
-        The caller Fourier-reduces M_l -> C_q(tau_l). Returns (Msum[L,n,n], W)."""
+        Also the TRANSVERSE channel (single cross-spin Wick pairing):
+            Mpm_l[i,j] = <S+_i(tau_l) S-_j(0)> = H^up_{ij}(tau_l) P^dn_{ij}(tau_l)
+        (SU(2): chi_pm = 2 chi_zz). The caller Fourier-reduces M_l -> C_q(tau_l).
+        Returns (Msum[L,n,n], Psum[L,n,n], W)."""
         L = bp + 1; n = self.m.n
-        Msum = np.zeros((L, n, n)); W = 0.0
+        Msum = np.zeros((L, n, n)); Psum = np.zeros((L, n, n)); W = 0.0
         for i in range(walkers.nw):
             if walkers.w[i] <= 0:
                 continue
@@ -782,8 +785,9 @@ class Estimators:
                 Hu = Bui.T @ gu; Pu = Bu @ ImguT                # hole/particle GFs
                 Hd = Bdi.T @ gd; Pd = Bd @ ImgdT
                 Msum[l] += w * (np.outer(ml, m0) + 0.25 * (Hu * Pu + Hd * Pd))
+                Psum[l] += w * (Hu * Pd)                        # <c^+_u(t)c_u><c_d(t)c^+_d>
             W += w
-        return Msum, W
+        return Msum, Psum, W
 
     def chid_block(self, walkers, ket_up, ket_dn, rec, bp, Fs, Fd):
         """Imaginary-time-displaced singlet PAIRING correlation
@@ -1089,16 +1093,16 @@ class CPMC:
             self.step()
             if (it + 1) % ortho == 0: self.reorthogonalize()
             if (it + 1) % pc == 0: self.pop_control()
-        blocks = []
+        blocks = []; blocks_pm = []
         for blk in range(nblocks):
             self.reorthogonalize()
             ket_up = self.walkers.phi_up.copy(); ket_dn = self.walkers.phi_dn.copy()
             rec = [[] for _ in range(self.nw)]
             for _ in range(bp):
                 self.prop.step_record(self.walkers, rec)
-            Msum, W = self.est.chi_spin_block(self.walkers, ket_up, ket_dn, rec, bp)
+            Msum, Psum, W = self.est.chi_spin_block(self.walkers, ket_up, ket_dn, rec, bp)
             if W > 0:
-                blocks.append(Msum / W)
+                blocks.append(Msum / W); blocks_pm.append(Psum / W)
             self.pop_control()
         shift = _shift_index(self.lx, self.ly)
         rows = np.arange(self.n)
@@ -1116,11 +1120,21 @@ class CPMC:
         chi_b = self.dt * (Cq[:, 1:-1].sum(axis=1) + 0.5 * (Cq[:, 0] + Cq[:, -1]))
         chi_q = chi_b.mean(axis=0)
         chi_q_err = chi_b.std(axis=0) / np.sqrt(nb) if nb > 1 else np.zeros_like(chi_q)
+        # transverse channel: same reduction/window on the S+S- matrices
+        Pq = np.array([[_pq(Mb[l]) / self.n
+                        for l in range(bp + 1)] for Mb in blocks_pm])
+        Ptau_q = Pq.mean(axis=0)
+        Perr_q = Pq.std(axis=0) / np.sqrt(nb) if nb > 1 else np.zeros_like(Ptau_q)
+        pm_b = self.dt * (Pq[:, 1:-1].sum(axis=1) + 0.5 * (Pq[:, 0] + Pq[:, -1]))
+        chi_pm_q = pm_b.mean(axis=0)
+        chi_pm_err = pm_b.std(axis=0) / np.sqrt(nb) if nb > 1 else np.zeros_like(chi_pm_q)
         kpi = (self.lx // 2, self.ly // 2)                     # (pi,pi) grid index
         return {"nsites": self.n, "bp": bp, "dt": self.dt,
                 "taus": (self.dt * np.arange(bp + 1)).tolist(),
                 "Ctau_q": Ctau_q.tolist(), "Cerr_q": Cerr_q.tolist(),
                 "chi_q": chi_q.tolist(), "chi_q_err": chi_q_err.tolist(),
+                "Ctau_pm_q": Ptau_q.tolist(), "Cerr_pm_q": Perr_q.tolist(),
+                "chi_pm_q": chi_pm_q.tolist(), "chi_pm_q_err": chi_pm_err.tolist(),
                 "chi_q0": float(chi_q[0, 0]),
                 "chi_pipi": float(chi_q[kpi]), "chi_pipi_err": float(chi_q_err[kpi])}
 

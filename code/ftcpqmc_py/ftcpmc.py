@@ -179,6 +179,7 @@ class FTCPMC:
         if spin:
             assert self.norb == 1, "spin chi_zz(q) reduction is single-band (norb=1) only"
             self._Mzz = np.zeros((n, n)); self._Szz = np.zeros((n, n))
+            self._Mpm = np.zeros((n, n)); self._Spm = np.zeros((n, n))   # transverse channel
         if getattr(self, "paireig", False):                          # k-space pairing-matrix accumulators
             from pair_eig import _dft, _neg_k_index
             self._W, self._kxf, self._kyf = _dft(self.lx, self.ly)
@@ -352,6 +353,7 @@ class FTCPMC:
             Gll = [G[0].copy(), G[1].copy()]
             m0 = (1.0 - np.diag(G[0])) - (1.0 - np.diag(G[1]))       # m_j(0)
             Mzz = np.zeros((n, n)); Szz = None
+            Mpm = np.zeros((n, n)); Spm = None
             for l in range(self.L):
                 if l > 0:
                     if l % dq.nstab == 0:                            # restabilize all three
@@ -374,11 +376,14 @@ class FTCPMC:
                 M = 0.25 * (np.outer(ml, m0)
                             - G0l[0].T * Gl0[0]                      # [i,j]=G(0,l)[j,i] G(l,0)[i,j]
                             - G0l[1].T * Gl0[1])
-                Mzz += M
+                P = -(G0l[0].T * Gl0[1])                             # transverse <S+(tau) S->:
+                Mzz += M; Mpm += P                                   # <c^+_u(t)c_u> <c_d(t)c^+_d>
                 if l == 0:
-                    Szz = M.copy()
+                    Szz = M.copy(); Spm = P.copy()
             self._Mzz += ws * self.dt * Mzz
             self._Szz += ws * Szz
+            self._Mpm += ws * self.dt * Mpm
+            self._Spm += ws * Spm
         return accW, accE, accN, signsum, abssum, Mc_d, Mc_s, Mx_d, Mx_s
 
     def _finalize(self, accW, accE, accN, signsum, abssum, Mc_d, Mc_s, Mx_d, Mx_s, kres, chi):
@@ -405,6 +410,10 @@ class FTCPMC:
             out["chi_spin_q0"] = float(rx["Pq"][0, 0] / self.n)
             out["chi_spin_max"] = float(rx["Pq"].max() / self.n)
             out["S_spin_max"] = float(rc["Pq"].max() / self.n)
+            rp = reduce_mat(self._Mpm / accW, shift); rq = reduce_mat(self._Spm / accW, shift)
+            out["chi_pm_q"] = (rp["Pq"] / self.n).tolist()
+            out["S_pm_q"] = (rq["Pq"] / self.n).tolist()
+            out["chi_pm_max"] = float(rp["Pq"].max() / self.n)
         if getattr(self, "paireig_tau", False):                  # tau-integrated pairing eigenvalue
             Pc = self._Pft / accW - sum(self.dt * (self._AGuk[l] / accW) * (self._AGdk[l] / accW)
                                         for l in range(self.L))
@@ -594,15 +603,20 @@ def main():
         print(f"  S^z(q)    grid:\n{np.array2string(ss, precision=4)}")
         print(f"  chi_zz max={r['chi_spin_max']:.4f}  chi_zz(q=0)={r['chi_spin_q0']:.4f}  "
               f"S_max={r['S_spin_max']:.4f}")
+        cp = np.array(r["chi_pm_q"])
+        print(f"  chi_pm(q) grid:\n{np.array2string(cp, precision=4)}")
+        print(f"  chi_pm max={r['chi_pm_max']:.4f}   (SU(2) check: chi_pm = 2 chi_zz)")
     if a.ed:
         e, d, Sd, Ss, chid, chis = ed_finite_T(a.lx, a.ly, a.U, a.mu, a.beta, a.tam, a.t1)
         print(f"  ED  density = {d:.5f}   energy = {e:.5f}   S_d = {Sd:.4f}   S_s = {Ss:.4f}")
         print(f"  ED  chi_d = {chid:.4f}   chi_s = {chis:.4f}")
         if a.spin:
             from spin_susc import ed_chi_spin
-            chi_q, S_q, dens = ed_chi_spin(a.lx, a.ly, a.U, a.mu, a.beta, a.tam, a.t1)
+            chi_q, S_q, dens, chi_pm, S_pm = ed_chi_spin(a.lx, a.ly, a.U, a.mu, a.beta,
+                                                         a.tam, a.t1, pm=True)
             print(f"  ED  chi_zz(q) grid:\n{np.array2string(chi_q, precision=4)}")
             print(f"  ED  S^z(q)    grid:\n{np.array2string(S_q, precision=4)}")
+            print(f"  ED  chi_pm(q) grid:\n{np.array2string(chi_pm, precision=4)}")
 
 
 if __name__ == "__main__":

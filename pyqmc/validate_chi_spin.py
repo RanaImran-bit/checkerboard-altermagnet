@@ -91,6 +91,72 @@ def ed_chi_spin_T0(lx, ly, nup, ndn, t0, U, taus, tam=0.0, t1=0.0, tp=0.0):
     return Ctau_q / n, chi_q / n
 
 
+def _parity_below(configs, n):
+    """P[a, j] = (-1)^{# occupied sites < j in config a} (JW string within one species)."""
+    occ = np.array([[(c >> i) & 1 for i in range(n)] for c in configs], dtype=np.int64)
+    cum = np.cumsum(occ, axis=1) - occ                   # strictly-below counts
+    return (-1.0) ** cum, occ
+
+
+def ed_chi_pm_T0(lx, ly, nup, ndn, t0, U, taus, tam=0.0, t1=0.0, tp=0.0):
+    """T=0 Lehmann for the TRANSVERSE channel on the full q-grid:
+        C^{pm}_q(tau) = (1/N) sum_m |<m|O_q^+|0>|^2 e^{-(E_m - E0) tau},
+        O_q^+ = sum_j e^{+iq.r_j} S^-_j,  intermediate sector (nup-1, ndn+1).
+    Same bitmask sector ED as ed_chi_spin_T0; the JW cross-species sign is
+    sgn_up(u,j)*sgn_dn(d,j) (the global (-1)^{Nup-1} drops in |.|^2)."""
+    from itertools import combinations
+    from cpqmc import am_hopping
+    n = lx * ly
+    Ku, Kd = am_hopping(lx, ly, t0, tam, t1, tp)
+    # sector A = (nup, ndn): ground state
+    HuA, cuA, occuA = _sector_hop(Ku, n, nup)
+    HdA, cdA, occdA = _sector_hop(Kd, n, ndn)
+    DuA, DdA = HuA.shape[0], HdA.shape[0]
+    HA = (np.kron(HuA, np.eye(DdA)) + np.kron(np.eye(DuA), HdA)
+          + np.diag(U * (occuA[:, None, :] * occdA[None, :, :]).sum(-1).ravel().astype(float)))
+    EA, VA = np.linalg.eigh(HA); psi0 = VA[:, 0]; E0 = EA[0]
+    # sector B = (nup-1, ndn+1)
+    HuB, cuB, occuB = _sector_hop(Ku, n, nup - 1)
+    HdB, cdB, occdB = _sector_hop(Kd, n, ndn + 1)
+    DuB, DdB = HuB.shape[0], HdB.shape[0]
+    HB = (np.kron(HuB, np.eye(DdB)) + np.kron(np.eye(DuB), HdB)
+          + np.diag(U * (occuB[:, None, :] * occdB[None, :, :]).sum(-1).ravel().astype(float)))
+    EB, VB = np.linalg.eigh(HB)
+    # S^-_j matrices sector A -> B (phase-free); assemble O_q^+ per q from them
+    iuB = {c: a for a, c in enumerate(cuB)}; idB = {c: a for a, c in enumerate(cdB)}
+    PU, occU = _parity_below(cuA, n); PD, occD = _parity_below(cdA, n)
+    Sm = []                                              # Sm[j]: (DuB*DdB, DuA*DdA) sparse triplets
+    for j in range(n):
+        rows, cols, vals = [], [], []
+        for au, u in enumerate(cuA):
+            if not ((u >> j) & 1):
+                continue
+            up_new = iuB[u ^ (1 << j)]; su = PU[au, j]
+            for ad, d in enumerate(cdA):
+                if (d >> j) & 1:
+                    continue
+                dn_new = idB[d | (1 << j)]; sd = PD[ad, j]
+                rows.append(up_new * DdB + dn_new); cols.append(au * DdA + ad)
+                vals.append(su * sd)
+        Sm.append((np.array(rows), np.array(cols), np.array(vals)))
+    xm = np.arange(n) // ly; ym = np.arange(n) % ly
+    L = len(taus); dEB = EB - E0
+    Ctau_q = np.zeros((L, lx, ly)); chi_q = np.zeros((lx, ly))
+    for kx in range(lx):
+        for ky in range(ly):
+            ph = np.exp(+2j * np.pi * (kx * xm / lx + ky * ym / ly))   # conj(e^{-iq.r})
+            Opsi = np.zeros(DuB * DdB, dtype=complex)
+            for j in range(n):
+                rows, cols, vals = Sm[j]
+                if len(rows):
+                    np.add.at(Opsi, rows, ph[j] * vals * psi0[cols])
+            a2 = np.abs(VB.T @ Opsi) ** 2                # |<m|O_q^+|0>|^2 (VB real)
+            Ctau_q[:, kx, ky] = [float(np.sum(a2 * np.exp(-d * dEB))) for d in taus]
+            mask = dEB > 1e-9
+            chi_q[kx, ky] = float(np.sum(a2[mask] / dEB[mask]))        # excludes dE=0 (Goldstone)
+    return Ctau_q / n, chi_q / n
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--lx", type=int, default=2); ap.add_argument("--ly", type=int, default=2)
@@ -119,6 +185,11 @@ def main():
                                      a.tam, a.t1, a.tp)
     # windowed ED chi (same trapezoid as the QMC)
     chi_ed_win = a.dt * (Ce[1:-1].sum(axis=0) + 0.5 * (Ce[0] + Ce[-1]))
+    # transverse channel (intermediate sector (nup-1, ndn+1))
+    Cpm_q = np.array(qm["Ctau_pm_q"]); chi_pm_q = np.array(qm["chi_pm_q"])
+    chi_pm_qe = np.array(qm["chi_pm_q_err"])
+    Cpe, _ = ed_chi_pm_T0(a.lx, a.ly, a.nup, a.ndn, a.t, a.U, taus, a.tam, a.t1, a.tp)
+    chi_pm_win = a.dt * (Cpe[1:-1].sum(axis=0) + 0.5 * (Cpe[0] + Cpe[-1]))
 
     print(f"# chi_zz(q) T=0 gate: {a.lx}x{a.ly} nup={a.nup} ndn={a.ndn} U={a.U} "
           f"tam={a.tam} t1={a.t1} tp={a.tp}  (bp={a.bp}, dt={a.dt}, window tau<={taus[-1]:.2f})")
@@ -136,8 +207,22 @@ def main():
             print(f"  ({kx},{ky})   {ed:>11.4f} {qc:>10.4f} {qe:>8.4f} {z:>6.2f}  "
                   f"{Ce[0, kx, ky]:>9.4f} {Cq[0, kx, ky]:>10.4f}"
                   + ("" if ok else "   << FAIL"))
+    # ---- transverse channel table (gated with the same tolerance) ----
+    print(f"\n  TRANSVERSE chi_pm(q)  [SU(2) check: chi_pm = 2 chi_zz at tam=t1=0]")
+    print(f"{'q=(kx,ky)':>10} {'ED pm_win':>11} {'CPMC pm':>10} {'+/-':>8}  "
+          f"{'ED Cpm(0)':>10} {'CPMC Cpm(0)':>11}")
+    for kx in range(a.lx):
+        for ky in range(a.ly):
+            ed, qc, qe = chi_pm_win[kx, ky], chi_pm_q[kx, ky], chi_pm_qe[kx, ky]
+            dev = abs(qc - ed)
+            tol = max(a.tol_nsig * qe, a.rtol * max(abs(ed), 1e-3))
+            ok = dev < tol
+            npass += ok; ntot += 1
+            print(f"  ({kx},{ky})   {ed:>11.4f} {qc:>10.4f} {qe:>8.4f}  "
+                  f"{Cpe[0, kx, ky]:>10.4f} {Cpm_q[0, kx, ky]:>11.4f}"
+                  + ("" if ok else "   << FAIL"))
     verdict = "PASS" if npass == ntot else "FAIL"
-    print(f"\n{verdict}: {npass}/{ntot} q-points within max({a.tol_nsig} sigma, "
+    print(f"\n{verdict}: {npass}/{ntot} q-points (zz + pm) within max({a.tol_nsig} sigma, "
           f"{100*a.rtol:.0f}% ED)  [chi window 0..{taus[-1]:.2f}]")
     kpi = (a.lx // 2, a.ly // 2)
     print(f"(pi,pi) cross-check vs validate_chi convention: N*chi_q = "
@@ -148,7 +233,9 @@ def main():
             json.dump({"params": vars(a), "qmc": qm,
                        "ed_chi_win": chi_ed_win.tolist(),
                        "ed_chi_full": chi_ed_full.tolist(),
-                       "ed_Ctau_q": Ce.tolist(), "verdict": verdict}, f, indent=1)
+                       "ed_Ctau_q": Ce.tolist(),
+                       "ed_chi_pm_win": chi_pm_win.tolist(),
+                       "ed_Ctau_pm_q": Cpe.tolist(), "verdict": verdict}, f, indent=1)
         print(f"wrote {a.out}")
     sys.exit(0 if verdict == "PASS" else 1)
 

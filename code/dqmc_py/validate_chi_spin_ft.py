@@ -45,8 +45,9 @@ def main():
     print(f"# chi_zz(q) finite-T gate: {a.lx}x{a.ly} U={a.U} mu={a.mu} beta={a.beta} "
           f"tam={a.tam} t1={a.t1} tp={a.tp}")
 
-    # ---- ED (exact, full Fock JW Lehmann) ----
-    chi_ed, S_ed, dens_ed = ed_chi_spin(a.lx, a.ly, a.U, a.mu, a.beta, a.tam, a.t1, a.tp)
+    # ---- ED (exact, full Fock JW Lehmann; zz + transverse pm) ----
+    chi_ed, S_ed, dens_ed, chi_pm_ed, S_pm_ed = ed_chi_spin(
+        a.lx, a.ly, a.U, a.mu, a.beta, a.tam, a.t1, a.tp, pm=True)
     print(f"  ED    density={dens_ed:.5f}")
 
     # ---- DQMC (exact within stats where sign ~ 1) ----
@@ -56,6 +57,7 @@ def main():
 
     rows = {"ED": chi_ed, "DQMC": np.array(rd["chi_q"])}
     S_rows = {"ED": S_ed, "DQMC": np.array(rd["S_q"])}
+    pm_rows = {"ED": chi_pm_ed, "DQMC": np.array(rd["chi_pm_q"])}
     signs = {"DQMC": rd["sign"]}
 
     # ---- CP-DQMC: free projection (exact) + constrained (CP bias) ----
@@ -66,6 +68,7 @@ def main():
                        nw=a.ftnw, constrained=constrained, stab=True)
             r = q.run_fb_stab(a.ftnmeas, spin=True)
             rows[tag] = np.array(r["chi_spin_q"]); S_rows[tag] = np.array(r["S_spin_q"])
+            pm_rows[tag] = np.array(r["chi_pm_q"])
             signs[tag] = r["sign"]
             print(f"  {tag} density={r['dens']:.5f}  <sign>={r['sign']:.4f}  "
                   f"npaths={r['npaths']}  (L={q.L}, dt={a.ftdt})")
@@ -85,6 +88,18 @@ def main():
                 dev = abs(rows[k][kx, ky] - ed)
                 if dev > max(a.rtol * abs(ed), a.atol):
                     fails.append((k, kx, ky, float(dev)))
+    print(f"\n  chi_pm(q)  [transverse; SU(2): = 2 chi_zz]\n  {'q':>7} {hdr}")
+    for kx in range(a.lx):
+        for ky in range(a.ly):
+            vals = "".join(f"{pm_rows[k][kx, ky]:>10.4f}" for k in pm_rows)
+            print(f"  ({kx},{ky}) {vals}")
+            ed = chi_pm_ed[kx, ky]
+            for k in pm_rows:
+                if k in ("ED", "CPcons"):
+                    continue
+                dev = abs(pm_rows[k][kx, ky] - ed)
+                if dev > max(a.rtol * abs(ed), a.atol):
+                    fails.append((f"pm:{k}", kx, ky, float(dev)))
     print(f"\n  S^z(q)  [equal-time, per site]\n  {'q':>7} {hdr}")
     for kx in range(a.lx):
         for ky in range(a.ly):
@@ -104,7 +119,9 @@ def main():
         with open(a.out, "w") as f:
             json.dump({"params": vars(a), "dens_ed": dens_ed, "signs": signs,
                        "chi": {k: v.tolist() for k, v in rows.items()},
+                       "chi_pm": {k: v.tolist() for k, v in pm_rows.items()},
                        "S": {k: v.tolist() for k, v in S_rows.items()},
+                       "S_pm_ed": S_pm_ed.tolist(),
                        "verdict": verdict, "fails": fails}, f, indent=1)
         print(f"wrote {a.out}")
     sys.exit(0 if verdict == "PASS" else 1)

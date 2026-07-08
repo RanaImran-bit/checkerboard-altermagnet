@@ -61,9 +61,14 @@ class SpinDQMC(DQMC):
         return -(V2i @ (X / D2b[:, None]))
 
     def chi_spin(self):
-        """One-configuration tau-integrated spin correlation MATRIX
-        Mzz[i,j] = dt sum_l <Sz_i(tau_l) Sz_j(0)>_cfg  (rectangle rule, matches chi_pair)
-        plus the equal-time matrix Szz[i,j] = <Sz_i Sz_j>_cfg."""
+        """One-configuration tau-integrated spin correlation MATRICES
+        (rectangle rule, matches chi_pair):
+          Mzz[i,j] = dt sum_l <Sz_i(tau_l) Sz_j(0)>_cfg   (longitudinal)
+          Mpm[i,j] = dt sum_l <S+_i(tau_l) S-_j(0)>_cfg   (transverse; SU(2): chi_pm = 2 chi_zz)
+        plus the equal-time matrices Szz, Spm. Transverse Wick (single cross-spin
+        pairing; no disconnected piece for spin-diagonal HS):
+          <S+_i(tau) S-_j(0)>_cfg = <c^+_iu(tau) c_ju>_u <c_id(tau) c^+_jd>_d
+                                  = -G_u(0,tau)_{ji} G_d(tau,0)_{ij}."""
         n = self.n
         G00 = [self.green(0, 0), self.green(1, 0)]
         Gl0 = [G00[0].copy(), G00[1].copy()]
@@ -71,6 +76,7 @@ class SpinDQMC(DQMC):
         Gll = [G00[0].copy(), G00[1].copy()]
         m0 = (1.0 - np.diag(G00[0])) - (1.0 - np.diag(G00[1]))   # m_j(0)
         Mzz = np.zeros((n, n)); Szz = None
+        Mpm = np.zeros((n, n)); Spm = None
         for l in range(self.NT):
             if l > 0:
                 if l % self.nstab == 0:                    # restabilize all three
@@ -89,10 +95,11 @@ class SpinDQMC(DQMC):
             M = 0.25 * (np.outer(ml, m0)
                         - G0l[0].T * Gl0[0]               # [i,j] = G(0,l)[j,i] G(l,0)[i,j]
                         - G0l[1].T * Gl0[1])
-            Mzz += M
+            P = -(G0l[0].T * Gl0[1])                      # <c^+_u(t)c_u> <c_d(t)c^+_d>
+            Mzz += M; Mpm += P
             if l == 0:
-                Szz = M.copy()
-        return self.dt * Mzz, Szz
+                Szz = M.copy(); Spm = P.copy()
+        return self.dt * Mzz, Szz, self.dt * Mpm, Spm
 
     def run_spin(self, nwarm=200, nmeas=400, nsub=2):
         """Sign-weighted config average of the chi_zz and equal-time Szz matrices;
@@ -101,22 +108,26 @@ class SpinDQMC(DQMC):
             self.sweep()
         n = self.n
         Mx = np.zeros((n, n)); Mc = np.zeros((n, n))
+        Mp = np.zeros((n, n)); Mq = np.zeros((n, n))
         sw = 0.0; saw = 0.0; dens = 0.0
         for _ in range(nmeas):
             for _ in range(nsub):
                 s = self.sweep()
-            xm, cm = self.chi_spin()
-            Mx += s * xm; Mc += s * cm
+            xm, cm, pm, qm = self.chi_spin()
+            Mx += s * xm; Mc += s * cm; Mp += s * pm; Mq += s * qm
             g = self.green(0, 0); gd = self.green(1, 0)
             dens += s * float((n - np.trace(g) + n - np.trace(gd)) / n)
             sw += s; saw += abs(s)
-        Mx /= sw; Mc /= sw
+        Mx /= sw; Mc /= sw; Mp /= sw; Mq /= sw
         shift = _shift_index(self.lx, self.ly)
         rx = reduce_mat(Mx, shift); rc = reduce_mat(Mc, shift)
+        rp = reduce_mat(Mp, shift); rq = reduce_mat(Mq, shift)
         return dict(chi_q=rx["Pq"] / n, S_q=rc["Pq"] / n,      # per-site chi(q), S(q)
+                    chi_pm_q=rp["Pq"] / n, S_pm_q=rq["Pq"] / n,  # transverse channel
                     chi_max=float(rx["Pq"].max() / n), S_max=float(rc["Pq"].max() / n),
+                    chi_pm_max=float(rp["Pq"].max() / n),
                     chi_q0=float(rx["Pq"][0, 0] / n),          # uniform susceptibility
-                    Mzz=Mx, Szz=Mc, dens=dens / sw, sign=sw / saw)
+                    Mzz=Mx, Szz=Mc, Mpm=Mp, Spm=Mq, dens=dens / sw, sign=sw / saw)
 
 
 # ------------------------------------------------------------------------------- ED --
@@ -135,9 +146,12 @@ def _fock_ops(nso):
     return ops
 
 
-def ed_chi_spin(lx, ly, U, mu, beta, tam=0.0, t1=0.0, tp=0.0):
+def ed_chi_spin(lx, ly, U, mu, beta, tam=0.0, t1=0.0, tp=0.0, pm=False):
     """Exact chi_zz(q) (Kubo/Lehmann) + equal-time S^z(q) on the full Fock space.
-    Returns (chi_q, S_q, dens): (lx,ly) q-grids matching reduce_mat's FFT convention."""
+    Returns (chi_q, S_q, dens): (lx,ly) q-grids matching reduce_mat's FFT convention.
+    pm=True: additionally returns (chi_pm_q, S_pm_q) for the TRANSVERSE channel
+    chi_pm(q) = (1/N) int_0^beta dtau sum_ij e^{-iq(ri-rj)} <S+_i(tau) S-_j(0)>
+    (SU(2) check: chi_pm = 2 chi_zz, S_pm = 2 S_zz at tam=t1=0)."""
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "pyqmc"))
     from cpqmc import am_hopping
     n = lx * ly; nso = 2 * n
@@ -149,12 +163,14 @@ def ed_chi_spin(lx, ly, U, mu, beta, tam=0.0, t1=0.0, tp=0.0):
         for j in range(n):
             if abs(Ku[i, j]) > 1e-15: H += Ku[i, j] * (cd[i] @ c[j])
             if abs(Kd[i, j]) > 1e-15: H += Kd[i, j] * (cd[n + i] @ c[n + j])
-    Nop = np.zeros_like(H); Sz = []
+    Nop = np.zeros_like(H); Sz = []; Sp = []
     for i in range(n):
         nu = cd[i] @ c[i]; nd = cd[n + i] @ c[n + i]
         H += U * (nu @ nd) - mu * (nu + nd)
         Nop += nu + nd
         Sz.append(0.5 * (nu - nd))
+        if pm:
+            Sp.append(cd[i] @ c[n + i])                 # S+_i = c^+_{i up} c_{i dn}
     w, V = np.linalg.eigh(H)
     bw = np.exp(-beta * (w - w.min())); Z = bw.sum()
     dens = float(np.sum(bw * np.einsum("ik,ij,jk->k", V, Nop, V)) / Z) / n
@@ -164,6 +180,7 @@ def ed_chi_spin(lx, ly, U, mu, beta, tam=0.0, t1=0.0, tp=0.0):
     Kk = np.where(small, beta * bw[:, None], (bw[None, :] - bw[:, None]) / np.where(small, 1.0, diff))
     xm = np.arange(n) // ly; ym = np.arange(n) % ly
     chi_q = np.zeros((lx, ly)); S_q = np.zeros((lx, ly))
+    chi_pm = np.zeros((lx, ly)); S_pm = np.zeros((lx, ly))
     for kx in range(lx):
         for ky in range(ly):
             phase = np.exp(-2j * np.pi * (kx * xm / lx + ky * ym / ly))
@@ -172,6 +189,16 @@ def ed_chi_spin(lx, ly, U, mu, beta, tam=0.0, t1=0.0, tp=0.0):
             chi_q[kx, ky] = float(np.real((np.abs(Mt).T ** 2 * Kk).sum() / Z)) / n
             SS = Sq @ Sq.conj().T
             S_q[kx, ky] = float(np.real(np.sum(bw * np.einsum("ik,ij,jk->k", V, SS, V)) / Z)) / n
+            if pm:
+                # C(tau) = <O_q(tau) O_q^+(0)>, O_q = sum_i phase_i S+_i
+                # chi = (1/Z) sum_ab |<b|O_q^+|a>|^2 K(E_a,E_b) (same kernel, O -> O_q^+)
+                Oq = sum(phase[i] * Sp[i] for i in range(n))
+                Mt = V.T @ Oq.conj().T @ V           # Mt[b,a] = <b|O_q^+|a> (real V)
+                chi_pm[kx, ky] = float(np.real((np.abs(Mt).T ** 2 * Kk).sum() / Z)) / n
+                OO = Oq @ Oq.conj().T                # equal-time <O_q O_q^+>
+                S_pm[kx, ky] = float(np.real(np.sum(bw * np.einsum("ik,ij,jk->k", V, OO, V)) / Z)) / n
+    if pm:
+        return chi_q, S_q, dens, chi_pm, S_pm
     return chi_q, S_q, dens
 
 
