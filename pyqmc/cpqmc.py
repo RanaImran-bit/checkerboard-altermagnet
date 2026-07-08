@@ -742,6 +742,49 @@ class Estimators:
             W += w
         return Csum, W
 
+    def chi_spin_block(self, walkers, ket_up, ket_dn, rec, bp):
+        """Imaginary-time-displaced spin correlation MATRIX for ALL momenta at once:
+        M_l[i,j] = <S^z_i(tau_l) S^z_j(0)> for l = 0..bp. This is the exact matrix
+        generalization of chi_block (which contracts with one hard-coded phase
+        vector): per walker and slice, with m_i = n_iu - n_id,
+            M_l[i,j] = 1/4 m_i(tau_l) m_j(0)  +  1/4 sum_s (H^s o P^s)[i,j],
+        using the same particle/hole time-displaced GFs P^s(tau)=B_(l)(I-g^sT),
+        H^s(tau)=B_(l)^{-T} g^s and equal-time g^s(tau)=B^{-T} g B^{T} as chi_block
+        (chi_block's scalar == phase^T M_l phase, bit-checked in the validator).
+        The caller Fourier-reduces M_l -> C_q(tau_l). Returns (Msum[L,n,n], W)."""
+        L = bp + 1; n = self.m.n
+        Msum = np.zeros((L, n, n)); W = 0.0
+        for i in range(walkers.nw):
+            if walkers.w[i] <= 0:
+                continue
+            chs = rec[i]
+            if any(c is None for c in chs):
+                continue
+            Lu, Ld = self.bp_bra(chs, bp)
+            if Lu is None:
+                continue
+            try:
+                gu = _green(Lu, ket_up[i]).T   # g_ij = <c^+_i c_j>
+                gd = _green(Ld, ket_dn[i]).T
+            except np.linalg.LinAlgError:
+                continue
+            w = walkers.w[i]
+            Bu = np.eye(n); Bd = np.eye(n); Bui = np.eye(n); Bdi = np.eye(n)
+            ImguT = np.eye(n) - gu.T; ImgdT = np.eye(n) - gd.T
+            m0 = 0.5 * (np.diag(gu) - np.diag(gd))              # m_j(0)/2
+            for l in range(L):
+                if l > 0:
+                    bu, bd, bui, bdi = self._step_bmats(chs[l - 1])
+                    Bu = bu @ Bu; Bd = bd @ Bd
+                    Bui = Bui @ bui; Bdi = Bdi @ bdi
+                nu = np.diag(Bui.T @ gu @ Bu.T); nd = np.diag(Bdi.T @ gd @ Bd.T)
+                ml = 0.5 * (nu - nd)                            # m_i(tau_l)/2
+                Hu = Bui.T @ gu; Pu = Bu @ ImguT                # hole/particle GFs
+                Hd = Bdi.T @ gd; Pd = Bd @ ImgdT
+                Msum[l] += w * (np.outer(ml, m0) + 0.25 * (Hu * Pu + Hd * Pd))
+            W += w
+        return Msum, W
+
     def chid_block(self, walkers, ket_up, ket_dn, rec, bp, Fs, Fd):
         """Imaginary-time-displaced singlet PAIRING correlation
         C_a(tau_l) = <Delta_a(tau_l) Delta_a^dag(0)>, a = s, d_{x^2-y^2}, for the
@@ -1031,6 +1074,55 @@ class CPMC:
                 "chi_stag": float(chi_blocks.mean()),
                 "chi_stag_err": float(chi_blocks.std() / np.sqrt(len(chi_blocks))
                                       if len(chi_blocks) > 1 else 0.0)}
+
+    def run_bp_chi_spin(self, nequil=150, nblocks=30, bp=20, ortho=10, pc=10):
+        """Momentum-resolved unequal-time spin correlation for the single-band
+        square lattice: C_q(tau_l) = (1/N) sum_ij e^{-iq(ri-rj)} <S^z_i(tau_l) S^z_j(0)>
+        on the full (lx,ly) q-grid (reduce_mat FFT convention, identical to the
+        DQMC/CP-DQMC grids), and the WINDOWED static susceptibility
+        chi_zz(q) = trapezoid_{0..bp*dt} C_q(tau) dtau (per-site; one-sided T=0 Kubo,
+        same windowed convention as run_bp_chi). Per-block error bars.
+        Consistency: N * C_q(pi,pi) == run_bp_chi's staggered C(tau)."""
+        assert self.n == self.lx * self.ly, "run_bp_chi_spin is single-band only"
+        from unified_scan import _shift_index
+        for it in range(nequil):
+            self.step()
+            if (it + 1) % ortho == 0: self.reorthogonalize()
+            if (it + 1) % pc == 0: self.pop_control()
+        blocks = []
+        for blk in range(nblocks):
+            self.reorthogonalize()
+            ket_up = self.walkers.phi_up.copy(); ket_dn = self.walkers.phi_dn.copy()
+            rec = [[] for _ in range(self.nw)]
+            for _ in range(bp):
+                self.prop.step_record(self.walkers, rec)
+            Msum, W = self.est.chi_spin_block(self.walkers, ket_up, ket_dn, rec, bp)
+            if W > 0:
+                blocks.append(Msum / W)
+            self.pop_control()
+        shift = _shift_index(self.lx, self.ly)
+        rows = np.arange(self.n)
+        def _pq(M):     # M[i,j] -> S(R)=sum_m M[m,m+R] -> P(q)=FFT2(S)  (== reduce_mat's Pq)
+            Sg = np.array([[M[rows, shift[dx, dy]].sum() for dy in range(self.ly)]
+                           for dx in range(self.lx)])
+            return np.real(np.fft.fft2(Sg))
+        # per block, per tau: full q-grid C_q(tau_l) = FFT2(S(R))/N
+        Cq = np.array([[_pq(Mb[l]) / self.n
+                        for l in range(bp + 1)] for Mb in blocks])   # (nb, L, lx, ly)
+        nb = len(blocks)
+        Ctau_q = Cq.mean(axis=0)
+        Cerr_q = Cq.std(axis=0) / np.sqrt(nb) if nb > 1 else np.zeros_like(Ctau_q)
+        # windowed chi(q): trapezoid per block, then block stats
+        chi_b = self.dt * (Cq[:, 1:-1].sum(axis=1) + 0.5 * (Cq[:, 0] + Cq[:, -1]))
+        chi_q = chi_b.mean(axis=0)
+        chi_q_err = chi_b.std(axis=0) / np.sqrt(nb) if nb > 1 else np.zeros_like(chi_q)
+        kpi = (self.lx // 2, self.ly // 2)                     # (pi,pi) grid index
+        return {"nsites": self.n, "bp": bp, "dt": self.dt,
+                "taus": (self.dt * np.arange(bp + 1)).tolist(),
+                "Ctau_q": Ctau_q.tolist(), "Cerr_q": Cerr_q.tolist(),
+                "chi_q": chi_q.tolist(), "chi_q_err": chi_q_err.tolist(),
+                "chi_q0": float(chi_q[0, 0]),
+                "chi_pipi": float(chi_q[kpi]), "chi_pipi_err": float(chi_q_err[kpi])}
 
     def run_bp_chid(self, nequil=150, nblocks=30, bp=20, ortho=10, pc=10):
         """Unequal-time singlet PAIRING susceptibility (s-wave and d_{x^2-y^2}) for
