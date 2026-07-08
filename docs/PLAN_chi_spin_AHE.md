@@ -25,6 +25,9 @@ existing `run_bp_chi` / `validate_chi` staggered gate):
     C_q(τ)  = (1/N) Σ_n |<n|S^z_q|0>|^2 e^{-(E_n-E_0)τ},   S^z_q = Σ_i e^{-iq·r_i} S^z_i
     χ_q^win = trapezoid of C_q(τ) over τ ∈ [0, bp·dt]
 
+**Cross-convention factor (verified vs ED):** χ_finite-T(β→∞) = **2 ×** χ_T=0^one-sided
+(the finite-T ∫_0^β picks up both time orderings). Equal-time S^z(q) grids agree exactly.
+
 Numerics: site index `i = x*ly + y`; q-grids produced by the shared `reduce_mat`/FFT2
 reduction (`code/dqmc_py/dqmc.py`), i.e. **identical q-grid convention across engines** —
 this is what already guarantees DQMC-vs-CPQMC comparability for the pairing channel.

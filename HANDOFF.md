@@ -45,6 +45,21 @@ tools/build.sh src-small && tools/run.sh src-small ...   # then tools/compare.py
 production-ready at small/medium L. The Fortran trees are validated for energy and used as
 references; the active `code/src` tree has one open StepMeas estimator bug.
 
+**NEW (2026-07-08) — momentum-resolved magnetic susceptibility χ_zz(q) in ALL engines**
+(plan: `docs/PLAN_chi_spin_AHE.md`; benchmarks: `results/chi_spin_bench/`):
+- **DQMC**: already had it (`code/dqmc_py/spin_susc.py::SpinDQMC` + numpy JW ED oracle).
+- **CP-DQMC**: `ftcpmc.run_fb_stab(spin=True)` / CLI `--spin` — SpinDQMC Wick formula on
+  the CP path (stable G(τ,0)/G(0,τ)/G(l,l), dd-aware) → `chi_spin_q`, `S_spin_q` grids.
+- **CPQMC (T=0)**: `CPMC.run_bp_chi_spin()` — full-matrix generalization of the (π,π)
+  `chi_block` → C_q(τ) + windowed χ_zz(q) on the whole grid, per-block errors.
+- **Gates**: `pyqmc/validate_chi_spin.py` (T=0, numpy-only sector-ED Lehmann oracle —
+  no QuSpin needed) and `code/dqmc_py/validate_chi_spin_ft.py` (ED vs DQMC vs
+  CP-DQMC-free gated; CP-constrained bias + <sign> reported).
+- **Convention (ED-verified):** χ_finite-T(β→∞) = 2 × χ_T=0^one-sided; S^z(q) identical.
+- **AHE**: measurement strategy in `docs/AHE_MEASUREMENT.md` — σ_xy ≡ 0 in the current
+  real-hopping model (symmetry); do the spin-splitter σ_xy^z first (no SOC needed, clones
+  the χ_zz machinery); then i·t₂σ_z SOC + Chern-marker/Streda/Kubo routes.
+
 ---
 
 ## (2) PHYSICS FOUND + DATA LOCATIONS

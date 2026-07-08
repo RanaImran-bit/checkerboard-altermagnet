@@ -10,6 +10,11 @@ docs/PLAN_chi_spin_AHE.md): pyqmc CPMC run_bp_chi_spin vs exact Lehmann ED, sing
 (the same windowed one-sided T=0 Kubo convention as validate_chi; at (pi,pi) this
 reduces to N * the staggered gate of validate_chi -- cross-checked here).
 
+NB cross-engine: the finite-T engines (SpinDQMC / FTCPMC) use chi = int_0^beta dtau,
+whose beta->inf limit is 2x this one-sided T=0 value: chi_finiteT -> 2 * chi_T0.
+(Verified against spin_susc.ed_chi_spin at beta=12: equal-time C_q(0) identical,
+chi ratio exactly 2.)
+
     source tools/env.sh
     python pyqmc/validate_chi_spin.py --lx 4 --ly 2 --nup 4 --ndn 4 --U 0     # exact gate
     python pyqmc/validate_chi_spin.py --lx 2 --ly 2 --nup 2 --ndn 2 --U 4
@@ -27,35 +32,59 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
 
 
+def _sector_hop(K, n, npart):
+    """Dense one-species hopping Hamiltonian H[a,b] = sum_ij K_ij <a|c^+_i c_j|b> on the
+    fixed-particle-number bitmask basis (Jordan-Wigner sign = parity of occupied sites
+    strictly between i and j). Returns (H, configs, occ) with occ[a,i] in {0,1}."""
+    from itertools import combinations
+    configs = [sum(1 << s for s in c) for c in combinations(range(n), npart)]
+    index = {c: a for a, c in enumerate(configs)}
+    D = len(configs)
+    occ = np.array([[(c >> i) & 1 for i in range(n)] for c in configs], dtype=np.int8)
+    H = np.zeros((D, D))
+    for a, c in enumerate(configs):
+        for i in range(n):
+            for j in range(n):
+                if abs(K[i, j]) < 1e-14:
+                    continue
+                if i == j:                              # diagonal (chemical/on-site) term
+                    if (c >> i) & 1:
+                        H[a, a] += K[i, i]
+                    continue
+                if not ((c >> j) & 1) or ((c >> i) & 1):
+                    continue                            # need j occupied, i empty
+                lo, hi = (i, j) if i < j else (j, i)
+                between = c & (((1 << hi) - 1) ^ ((1 << (lo + 1)) - 1))
+                sgn = -1.0 if bin(between).count("1") % 2 else 1.0
+                H[index[(c ^ (1 << j)) | (1 << i)], a] += sgn * K[i, j]
+    return H, configs, occ
+
+
 def ed_chi_spin_T0(lx, ly, nup, ndn, t0, U, taus, tam=0.0, t1=0.0, tp=0.0):
-    """T=0 Lehmann C_q(tau) on the full (lx,ly) q-grid (QuSpin sector ED, spin-dependent
-    am_hopping -- same convention/i-ordering as the CPMC engine). Returns
-    (Ctau_q[L,lx,ly], chi_q_full[lx,ly]) with chi_q_full the UNWINDOWED sum_n |a|^2/dE."""
-    from quspin.basis import spinful_fermion_basis_general
-    from quspin.operators import hamiltonian
+    """T=0 Lehmann C_q(tau) on the full (lx,ly) q-grid. Numpy-only sector ED
+    (fixed (nup,ndn); H = Hup x I + I x Hdn + U diag -- S^z_q is DIAGONAL in the
+    occupation basis, so the Lehmann sum needs only the sector eigenbasis).
+    Same site convention/i-ordering (i = x*ly + y) as the CPMC engine. Returns
+    (Ctau_q[L,lx,ly], chi_q_full[lx,ly]) with chi_q_full the UNWINDOWED sum |a|^2/dE."""
     from cpqmc import am_hopping
     n = lx * ly
     Ku, Kd = am_hopping(lx, ly, t0, tam, t1, tp)
-    basis = spinful_fermion_basis_general(n, Nf=(nup, ndn))
-    nc = dict(check_pcon=False, check_symm=False, check_herm=False)
-    up_hop = [[Ku[i, j], i, j] for i in range(n) for j in range(n) if abs(Ku[i, j]) > 1e-14]
-    dn_hop = [[Kd[i, j], i, j] for i in range(n) for j in range(n) if abs(Kd[i, j]) > 1e-14]
-    inter = [[U, i, i] for i in range(n)]
-    H = hamiltonian([["+-|", up_hop], ["|+-", dn_hop], ["n|n", inter]], [],
-                    basis=basis, dtype=np.float64, **nc)
-    E, V = np.linalg.eigh(H.toarray())
+    Hu, cu, occu = _sector_hop(Ku, n, nup)
+    Hd, cd, occd = _sector_hop(Kd, n, ndn)
+    Du, Dd = Hu.shape[0], Hd.shape[0]
+    H = (np.kron(Hu, np.eye(Dd)) + np.kron(np.eye(Du), Hd)
+         + np.diag(U * (occu[:, None, :] * occd[None, :, :]).sum(-1).ravel().astype(float)))
+    E, V = np.linalg.eigh(H)
     psi0 = V[:, 0]; dE = E - E[0]
     xm = np.arange(n) // ly; ym = np.arange(n) % ly
+    mz = 0.5 * (occu[:, None, :] - occd[None, :, :]).reshape(Du * Dd, n)  # <a,b|S^z_i|a,b>
     L = len(taus)
     Ctau_q = np.zeros((L, lx, ly)); chi_q = np.zeros((lx, ly))
     for kx in range(lx):
         for ky in range(ly):
             ph = np.exp(-2j * np.pi * (kx * xm / lx + ky * ym / ly))
-            up = [[0.5 * ph[i], i] for i in range(n)]
-            dn = [[-0.5 * ph[i], i] for i in range(n)]
-            O = hamiltonian([["n|", up], ["|n", dn]], [], basis=basis,
-                            dtype=np.complex128, **nc)
-            a2 = np.abs(V.conj().T @ O.dot(psi0)) ** 2          # |<m|S^z_q|0>|^2
+            o = mz @ ph                                  # diagonal of S^z_q
+            a2 = np.abs(V.T @ (o * psi0)) ** 2           # |<m|S^z_q|0>|^2 (V real)
             Ctau_q[:, kx, ky] = [float(np.sum(a2 * np.exp(-d * dE))) for d in taus]
             mask = dE > 1e-9
             chi_q[kx, ky] = float(np.sum(a2[mask] / dE[mask]))
