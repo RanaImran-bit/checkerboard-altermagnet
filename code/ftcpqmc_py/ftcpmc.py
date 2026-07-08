@@ -76,9 +76,11 @@ class FTCPMC:
         # trial propagator powers T_l^s = (b0_s)^{L-l}, l=0..L (b0_s = expK_s, the U=0 B-matrix)
         self.Tpow = [self._powers(self.expK[s]) for s in (0, 1)]
         if stab:                                   # reuse the brute-validated ASvQRD green() of DQMC
-            from dqmc import DQMC                    # same uxy/v -> matching expK + dd_terms (s-form)
-            self._dq = DQMC(lx, ly, U, mu, beta, dt, tam, t1, seed, nstab=nstab,
-                            Kmat=(None if Kmat is None else Ku0), uxy=uxy, v=v)
+            # SpinDQMC = DQMC + the stable G(0,tau) chain (_green_0tau) needed by the
+            # spin-susceptibility measurement; construction/behaviour otherwise identical.
+            from spin_susc import SpinDQMC           # same uxy/v -> matching expK + dd_terms (s-form)
+            self._dq = SpinDQMC(lx, ly, U, mu, beta, dt, tam, t1, seed, nstab=nstab,
+                                Kmat=(None if Kmat is None else Ku0), uxy=uxy, v=v)
 
     def _green_stab(self, xpath, s):
         """Stabilized equal-time G_s=(I+M_L^s)^{-1} from the sampled path via DQMC.green
@@ -159,7 +161,7 @@ class FTCPMC:
             M[s] = (self.expK[s] * Dvec[None, :]) @ C[s]
         return logw, sign, True, x
 
-    def run_fb_stab(self, nmeas=400, kres=False, chi=False):
+    def run_fb_stab(self, nmeas=400, kres=False, chi=False, spin=False):
         """STABILIZED force-biased CP-DQMC (P0.1). Per slice l, get the stable equal-time
         Green's G_l (past = sampled B's, future = trial b0's) via DQMC.green (ASvQRD), then
         per-site heat-bath with the LOCAL DQMC ratio R_s = 1 + (1-G_l[i,i]) dv (O(1), stable)
@@ -173,6 +175,10 @@ class FTCPMC:
         self._accSAM = 0.0                                           # altermagnetic-order SF accumulator
         self._AtU = np.zeros((L, n, n)) if chi else None             # bubble: avg time-displaced Green's
         self._AtD = np.zeros((L, n, n)) if chi else None
+        self.spin_meas = bool(spin)                                  # tau-integrated spin chi_zz matrices
+        if spin:
+            assert self.norb == 1, "spin chi_zz(q) reduction is single-band (norb=1) only"
+            self._Mzz = np.zeros((n, n)); self._Szz = np.zeros((n, n))
         if getattr(self, "paireig", False):                          # k-space pairing-matrix accumulators
             from pair_eig import _dft, _neg_k_index
             self._W, self._kxf, self._kyf = _dft(self.lx, self.ly)
@@ -332,6 +338,47 @@ class FTCPMC:
                     self._Pft += ws * self.dt * (Guk * Gdk_m)
                     self._AGuk[l] += ws * Guk; self._AGdk[l] += ws * Gdk_m
             Mx_d += ws * self.dt * xd; Mx_s += ws * self.dt * xs
+        if getattr(self, "spin_meas", False):
+            # tau-integrated spin-spin matrix Mzz[i,j] = dt sum_l <Sz_i(tau_l) Sz_j(0)>_cfg
+            # (+ equal-time Szz) -- the SpinDQMC.chi_spin Wick formula ported to the
+            # CP-DQMC sampled path: G(l,0)/G(0,l)/G(l,l) propagated per slice, restabilized
+            # every nstab via the ASvQRD chains (docs/STABILIZATION.md). DQMC convention
+            # G = <c c^dag>; the DISCONNECTED m(tau) m(0) term carries the q-structure.
+            dq = self._dq; dq.x[:, :] = np.array(xpath).T
+            if self.dd_terms and xddpath is not None: dq.xdd[:, :] = np.array(xddpath).T
+            I = np.eye(n)
+            Gl0 = [G[0].copy(), G[1].copy()]
+            G0l = [G[0] - I, G[1] - I]
+            Gll = [G[0].copy(), G[1].copy()]
+            m0 = (1.0 - np.diag(G[0])) - (1.0 - np.diag(G[1]))       # m_j(0)
+            Mzz = np.zeros((n, n)); Szz = None
+            for l in range(self.L):
+                if l > 0:
+                    if l % dq.nstab == 0:                            # restabilize all three
+                        Gl0 = [dq._green_tau(0, l), dq._green_tau(1, l)]
+                        G0l = [dq._green_0tau(0, l), dq._green_0tau(1, l)]
+                        Gll = [dq.green(0, l), dq.green(1, l)]
+                    else:                                            # cheap slice propagation
+                        for s in (0, 1):
+                            Bv = np.exp(self.sgn[s] * self.lam * xpath[l - 1])
+                            for t, (a, sa, b, sb, lam, siga, sigb) in enumerate(self.dd_terms):
+                                f = xddpath[l - 1][t]
+                                if sa == s: Bv[a] *= np.exp(lam * siga * f)
+                                if sb == s: Bv[b] *= np.exp(lam * sigb * f)
+                            B = self.expK[s] * Bv[None, :]
+                            Bi = (1.0 / Bv)[:, None] * self.expK_inv[s]
+                            Gl0[s] = B @ Gl0[s]
+                            G0l[s] = G0l[s] @ Bi
+                            Gll[s] = B @ Gll[s] @ Bi
+                ml = (1.0 - np.diag(Gll[0])) - (1.0 - np.diag(Gll[1]))
+                M = 0.25 * (np.outer(ml, m0)
+                            - G0l[0].T * Gl0[0]                      # [i,j]=G(0,l)[j,i] G(l,0)[i,j]
+                            - G0l[1].T * Gl0[1])
+                Mzz += M
+                if l == 0:
+                    Szz = M.copy()
+            self._Mzz += ws * self.dt * Mzz
+            self._Szz += ws * Szz
         return accW, accE, accN, signsum, abssum, Mc_d, Mc_s, Mx_d, Mx_s
 
     def _finalize(self, accW, accE, accN, signsum, abssum, Mc_d, Mc_s, Mx_d, Mx_s, kres, chi):
@@ -350,6 +397,14 @@ class FTCPMC:
                        for l in range(self.L))
             out["chidV"] = float((Mx_d / accW - self.dt * bubd).sum())
             out["chisV"] = float((Mx_s / accW - self.dt * bubs).sum())
+        if getattr(self, "spin_meas", False):                    # spin chi_zz(q) + S^z(q) grids
+            shift = _shift_index(self.lx, self.ly)               # per-site, == SpinDQMC.run_spin
+            rx = reduce_mat(self._Mzz / accW, shift); rc = reduce_mat(self._Szz / accW, shift)
+            out["chi_spin_q"] = (rx["Pq"] / self.n).tolist()
+            out["S_spin_q"] = (rc["Pq"] / self.n).tolist()
+            out["chi_spin_q0"] = float(rx["Pq"][0, 0] / self.n)
+            out["chi_spin_max"] = float(rx["Pq"].max() / self.n)
+            out["S_spin_max"] = float(rc["Pq"].max() / self.n)
         if getattr(self, "paireig_tau", False):                  # tau-integrated pairing eigenvalue
             Pc = self._Pft / accW - sum(self.dt * (self._AGuk[l] / accW) * (self._AGdk[l] / accW)
                                         for l in range(self.L))
@@ -506,13 +561,17 @@ def main():
     ap.add_argument("--free", action="store_true", help="release constraint (exact, sign-carrying)")
     ap.add_argument("--fb", action="store_true", help="force-biased (heat-bath) importance sampling")
     ap.add_argument("--chi", action="store_true", help="also measure tau-integrated pair susceptibility (fb only)")
+    ap.add_argument("--spin", action="store_true",
+                    help="also measure tau-integrated spin chi_zz(q) + S^z(q) grids (fb --stab only)")
     ap.add_argument("--kres", action="store_true")
     ap.add_argument("--stab", action="store_true", help="stabilized (ASvQRD) measurement Green's")
     a = ap.parse_args()
     q = FTCPMC(a.lx, a.ly, a.U, a.mu, a.beta, a.dt, a.tam, a.t1, a.seed,
                nw=a.nw, constrained=not a.free, stab=a.stab)
+    if a.spin and not (a.fb and a.stab):
+        ap.error("--spin requires --fb --stab (the stabilized force-biased path)")
     if a.fb and a.stab:
-        r = q.run_fb_stab(a.nmeas, kres=a.kres, chi=a.chi)
+        r = q.run_fb_stab(a.nmeas, kres=a.kres, chi=a.chi, spin=a.spin)
     elif a.fb:
         r = q.run_fb(a.nmeas, kres=a.kres, chi=a.chi)
     else:
@@ -529,10 +588,21 @@ def main():
         cv = r["corrV_d"]; print(f"  corrV_d (vtx) maxk={cv['maxk']:.4f} k0={cv['k0']:.4f}")
         if a.chi and "suscV_d" in r:
             xv = r["suscV_d"]; print(f"  suscV_d (vtx) maxk={xv['maxk']:.4f} k0={xv['k0']:.4f}")
+    if a.spin and "chi_spin_q" in r:
+        cs = np.array(r["chi_spin_q"]); ss = np.array(r["S_spin_q"])
+        print(f"  chi_zz(q) grid (rows kx=0..):\n{np.array2string(cs, precision=4)}")
+        print(f"  S^z(q)    grid:\n{np.array2string(ss, precision=4)}")
+        print(f"  chi_zz max={r['chi_spin_max']:.4f}  chi_zz(q=0)={r['chi_spin_q0']:.4f}  "
+              f"S_max={r['S_spin_max']:.4f}")
     if a.ed:
         e, d, Sd, Ss, chid, chis = ed_finite_T(a.lx, a.ly, a.U, a.mu, a.beta, a.tam, a.t1)
         print(f"  ED  density = {d:.5f}   energy = {e:.5f}   S_d = {Sd:.4f}   S_s = {Ss:.4f}")
         print(f"  ED  chi_d = {chid:.4f}   chi_s = {chis:.4f}")
+        if a.spin:
+            from spin_susc import ed_chi_spin
+            chi_q, S_q, dens = ed_chi_spin(a.lx, a.ly, a.U, a.mu, a.beta, a.tam, a.t1)
+            print(f"  ED  chi_zz(q) grid:\n{np.array2string(chi_q, precision=4)}")
+            print(f"  ED  S^z(q)    grid:\n{np.array2string(S_q, precision=4)}")
 
 
 if __name__ == "__main__":
