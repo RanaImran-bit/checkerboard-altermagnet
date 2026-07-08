@@ -56,6 +56,13 @@ references; the active `code/src` tree has one open StepMeas estimator bug.
   no QuSpin needed) and `code/dqmc_py/validate_chi_spin_ft.py` (ED vs DQMC vs
   CP-DQMC-free gated; CP-constrained bias + <sign> reported).
 - **Convention (ED-verified):** χ_finite-T(β→∞) = 2 × χ_T=0^one-sided; S^z(q) identical.
+- **ALL GATES PASS (2026-07-08, 48-core server):** regression bit-for-bit; T=0 U=0
+  closed-shell digit-for-digit (8/8 q); T=0 4×4 U=3 <1% (16/16); T=0 4×2 U=4 2–5%;
+  finite-T 2×2/3×2 DQMC ≤2.3%, CP-free ≤4%, CP-constrained ⟨sign⟩=1.0000 with 2.5–3.5%
+  bias at half-filling. Half-filled interacting (π,π) CP bias −7% (window-converging:
+  −12% at bp=20 → −7% at bp=40). Gate points MUST be closed-shell (open-shell trial
+  degeneracy artifact documented in the v1 logs). Figure: `docs/chi_spin_bench.png`.
+  Equations reference: `docs/EQUATIONS.md`.
 - **AHE**: measurement strategy in `docs/AHE_MEASUREMENT.md` — σ_xy ≡ 0 in the current
   real-hopping model (symmetry); do the spin-splitter σ_xy^z first (no SOC needed, clones
   the χ_zz machinery); then i·t₂σ_z SOC + Chern-marker/Streda/Kubo routes.
