@@ -1,0 +1,1 @@
+cpqmc n=0.75 tA=0.3 t'=0.3: dens=0.7500 sign=1.000  chi_zz peak 0.1889 at (1.00,1.00)pi   chi_pm peak 0.4413 at (1.00,0.75)pi -> wrote results/paper2_demo/cpqmc_n0.75_ta0.3_tt0.3.json

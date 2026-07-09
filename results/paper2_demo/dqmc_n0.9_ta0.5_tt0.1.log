@@ -1,0 +1,1 @@
+dqmc n=0.9 tA=0.5 t'=0.1: dens=0.8928 sign=0.907  chi_zz peak 0.7240 at (1.00,1.00)pi   chi_pm peak 0.4491 at (0.75,1.00)pi -> wrote results/paper2_demo/dqmc_n0.9_ta0.5_tt0.1.json
