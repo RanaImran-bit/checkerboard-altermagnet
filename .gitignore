@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+*.swp
+
+# logs and cluster scratch output (curated CSVs in data/ are kept)
+*.log
+chi_grid_U*.csv
+chi_grid_all.csv
+timing.log
