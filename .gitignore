@@ -12,3 +12,6 @@ __pycache__/
 chi_grid_U*.csv
 chi_grid_all.csv
 timing.log
+
+# keep curated data CSVs (cluster scratch copies elsewhere stay ignored)
+!data/chi_grid*.csv
