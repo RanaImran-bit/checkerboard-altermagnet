@@ -15,3 +15,6 @@ timing.log
 
 # keep curated data CSVs (cluster scratch copies elsewhere stay ignored)
 !data/chi_grid*.csv
+
+# meeting slides / personal notes (kept locally)
+*.pptx
