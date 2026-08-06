@@ -172,7 +172,7 @@ the doped window n≈0.67–0.89.
 
 ### Fig. 11 — magnetic χ_zz(q)  (11_chizz_q.png)  [6x6]
 Momentum-resolved magnetic spin susceptibility. Half filling peaks at (π,π) (Néel/AM); doped is weaker and
-shifts off (π,π). HoKin's "momentum-space" magnetic susceptibility.
+shifts off (π,π). The momentum-space magnetic susceptibility.
 ```latex
 \begin{figure*}[t]
   \centering

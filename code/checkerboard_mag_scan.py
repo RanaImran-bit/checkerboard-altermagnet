@@ -2,7 +2,7 @@
 """MAGNETIC / altermagnetic-order-parameter scan over the (L, n, delta, U) cube.
 Pairs 1:1 with checkerboard_fss_full.py (same L, n, delta, U, seeds) so the pairing
 susceptibility can be re-plotted against the AM order parameter instead of against
-U and delta separately -- HoKin's Delta_pol x-axis, and the PRL referee's
+U and delta separately -- the Delta_pol x-axis, and the question of
 "is it induced by U / is it general" question.
 
 Per point, from the EQUAL-TIME spin structure factor S^zz(q) = Ctau_q[0]:

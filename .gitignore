@@ -18,3 +18,7 @@ timing.log
 
 # meeting slides / personal notes (kept locally)
 *.pptx
+
+# local working area: bulky intermediates, decks, and third-party reference code
+# (ALF / DQMC sources copied from the cluster belong to their authors, not here)
+cb_model/

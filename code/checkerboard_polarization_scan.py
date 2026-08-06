@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Scan the STAGGERED MOMENT M(U, delta, n) over the same (n, delta) x U grid as the
 pairing scan, so the pairing susceptibility can be re-plotted against the altermagnetic
-'polarization' Delta_pol = M * delta  (meeting point #11 -- HoKin's polarization x-axis).
+'polarization' Delta_pol = M * delta  (the polarization x-axis).
 
 M = sqrt(S^z(pi,pi)), where S^z(pi,pi) is the EQUAL-TIME spin structure factor
 (= Ctau_q[0] at (pi,pi) from run_bp_chi_spin). CP-clean 2-point observable.

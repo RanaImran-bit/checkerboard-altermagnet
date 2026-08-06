@@ -21,10 +21,10 @@ Living status of the 13 meeting points (2026-07-30). Legend: ✅ done · 🔄 in
 | 8 | Quantum fluctuations in equal-time vertex | 🔄 | ED gate showed equal-time vertex is CP-biased |
 | 9 | Magnetic order stability; AM enhance/destroy | ⬜ | have S^z(π,π), χ_zz(q); need stability analysis |
 | 10 | Strengthen interaction-driven novelty | 🔄 | U-scan is the core evidence; #11 is the framing |
-| 11 | **AM order parameter as x-axis** (HoKin) | ✅ | M(U,δ) scanned; NO clean collapse (was small-N/U-confound). Honest result = per-filling δ-dependence (fig_pol_chi_vs_delta): doped δ suppresses dxy / dx2-y2 δ-blind; half-filling δ enhances dxy. Half-filling open-shell caveat RESOLVED via anti-periodic BC (fig_apbc_vs_periodic): dxy-vs-δ clean at all U (corr +0.97) → physical, not trial artifact |
-| 12 | Finite-size stability of dx2-y2 (HoKin) | 🔄 | driver checkerboard_fss.py ready; timing: ~N^1.5 (L=8 ~15min, L=10 ~30, L=12 ~55). L=6→8 preview: dxy suppression stable/strengthens. Run L=8/10/12 on 251 |
-| 12 | Finite-size stability of dx2-y2 (HoKin) | ⬜ | run timing test → size scan 6→8→10 |
-| 13 | Compare dx2-y2 vs s-wave vs dxy (HoKin) | 🔄 | comparison done at 6×6 (dx2-y2 leads doped, dxy at half-filling); size-scaling pending (#12) |
+| 11 | **AM order parameter as x-axis** | ✅ | M(U,δ) scanned; NO clean collapse (was small-N/U-confound). Honest result = per-filling δ-dependence (fig_pol_chi_vs_delta): doped δ suppresses dxy / dx2-y2 δ-blind; half-filling δ enhances dxy. Half-filling open-shell caveat RESOLVED via anti-periodic BC (fig_apbc_vs_periodic): dxy-vs-δ clean at all U (corr +0.97) → physical, not trial artifact |
+| 12 | Finite-size stability of dx2-y2 | 🔄 | driver checkerboard_fss.py ready; timing: ~N^1.5 (L=8 ~15min, L=10 ~30, L=12 ~55). L=6→8 preview: dxy suppression stable/strengthens. Run L=8/10/12 on 251 |
+| 12 | Finite-size stability of dx2-y2 | ⬜ | run timing test → size scan 6→8→10 |
+| 13 | Compare dx2-y2 vs s-wave vs dxy | 🔄 | comparison done at 6×6 (dx2-y2 leads doped, dxy at half-filling); size-scaling pending (#12) |
 
 ## Honest caveats locked in
 - Robust δ-effect is **dxy suppression**, NOT dx2-y2 enhancement (dx2-y2 vs δ is non-monotonic, falls at U=8).
