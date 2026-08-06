@@ -29,7 +29,7 @@ NPROC = int(os.environ.get("NPROC", min(os.cpu_count(), 32)))
 NSEED = int(os.environ.get("NSEED", 6)); SEEDS = list(range(1, NSEED + 1))
 SIZES = [int(x) for x in os.environ.get("SIZES", "8,10,12").split(",")]
 US = [float(x) for x in os.environ.get("US", "0,2,4,6,8").split(",")]
-DELTAS = [0.0, 0.1, 0.2, 0.3, 0.4]
+DELTAS = [float(x) for x in os.environ.get("DELTAS", "0,0.1,0.2,0.3,0.4").split(",")]
 N_TARGETS = [2 * k / 36 for k in [9, 10, 12, 14, 16, 18]]   # n = 0.5, 0.556, 0.667, 0.778, 0.889, 1.0
 
 
