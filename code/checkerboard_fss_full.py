@@ -51,15 +51,24 @@ if __name__ == "__main__":
         nups = sorted({max(1, round(nt * L * L / 2)) for nt in N_TARGETS})
         L_frames = []
         for U in US:
-            jobs = [(L, nup, d, U, s) for nup in nups for d in DELTAS for s in SEEDS]
-            print(f"[L={L} U={U:g}] {len(jobs)} points, nups={nups} ...", flush=True)
+            print(f"[L={L} U={U:g}] {len(nups)*len(DELTAS)*len(SEEDS)} points over "
+                  f"{len(DELTAS)} delta, nups={nups} ...", flush=True)
             t0 = time.time()
-            with Pool(NPROC) as pool:
-                rows = pool.map(run, jobs)
-            df = pd.DataFrame(rows, columns=["L", "nup", "delta", "U", "seed",
-                                             "chi_son", "chi_sext", "chi_d", "chi_dxy"])
-            df["n"] = 2 * df["nup"] / (L * L)
-            df.to_csv(f"fss_full_L{L}_U{U:g}.csv", index=False)      # per-(L,U) crash safety
+            rows = []
+            # Loop delta OUTSIDE the pool and write after each one. A block runs for many
+            # hours and a node reboot mid-block used to destroy all of it, because the file
+            # was written only at the very end. Now the worst case is one delta's work.
+            for d in DELTAS:
+                jobs = [(L, nup, d, U, s) for nup in nups for s in SEEDS]
+                td = time.time()
+                with Pool(NPROC) as pool:
+                    rows += pool.map(run, jobs)
+                df = pd.DataFrame(rows, columns=["L", "nup", "delta", "U", "seed",
+                                                 "chi_son", "chi_sext", "chi_d", "chi_dxy"])
+                df["n"] = 2 * df["nup"] / (L * L)
+                df.to_csv(f"fss_full_L{L}_U{U:g}.csv", index=False)
+                print(f"   delta={d:g} done ({(time.time()-td)/60:.1f} min), "
+                      f"{len(rows)} rows written", flush=True)
             L_frames.append(df); all_frames.append(df)
             print(f"[L={L} U={U:g}] saved  rows: {len(df)}  ({(time.time()-t0)/60:.1f} min)", flush=True)
         pd.concat(L_frames, ignore_index=True).to_csv(f"fss_full_L{L}.csv", index=False)

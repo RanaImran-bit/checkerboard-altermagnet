@@ -89,14 +89,23 @@ if __name__ == "__main__":
         nups = sorted({max(1, round(nt * L * L / 2)) for nt in N_TARGETS})
         L_frames = []
         for U in US:
-            jobs = [(L, nup, d, U, s) for nup in nups for d in DELTAS for s in SEEDS]
-            print(f"[L={L} U={U:g}] {len(jobs)} points, nups={nups} ...", flush=True)
+            print(f"[L={L} U={U:g}] {len(nups)*len(DELTAS)*len(SEEDS)} points over "
+                  f"{len(DELTAS)} delta, nups={nups} ...", flush=True)
             t0 = time.time()
-            with Pool(NPROC) as pool:
-                out = pool.map(run_point, jobs)
-            rows = [o[0] for o in out]
+            rows, out = [], []
+            # Loop delta OUTSIDE the pool and write after each one. A block is many hours,
+            # and a node reboot mid-block previously destroyed the whole thing (the file was
+            # only written at the very end). Now the worst case is one delta's work.
+            for d in DELTAS:
+                jobs = [(L, nup, d, U, s) for nup in nups for s in SEEDS]
+                td = time.time()
+                with Pool(NPROC) as pool:
+                    part = pool.map(run_point, jobs)
+                out += part; rows += [o[0] for o in part]
+                pd.DataFrame(rows, columns=COLS).to_csv(f"mag_L{L}_U{U:g}.csv", index=False)
+                print(f"   delta={d:g} done ({(time.time()-td)/60:.1f} min), "
+                      f"{len(rows)} rows written", flush=True)
             df = pd.DataFrame(rows, columns=COLS)
-            df.to_csv(f"mag_L{L}_U{U:g}.csv", index=False)          # per-(L,U) crash safety
             # full S(q) for every point -> any harmonic can be re-projected later
             np.savez_compressed(f"sq_L{L}_U{U:g}.npz",
                                 Sq=np.array([o[1] for o in out]),
