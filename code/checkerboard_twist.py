@@ -30,8 +30,9 @@ complex hoppings, hence a complex engine.
       checkerboard_twist.py </dev/null > twist.log 2>&1 &
 
 NUPS selects fillings directly (comma separated); leave unset for the usual six.
-Writes twist_L{L}_U{U}_apx{apx}apy{apy}.csv after every anisotropy, so the twist
-is in the FILENAME and a second run can never overwrite the first.
+Writes twist_L{L}_U{U}_apx{apx}apy{apy}_nups{...}.csv after every anisotropy. BOTH the
+twist AND the fillings are in the filename: a run covering different fillings in the same
+directory would otherwise overwrite the first, which is exactly what happened on 12 Aug.
 """
 import os, sys, time, csv
 os.environ["OMP_NUM_THREADS"] = "1"; os.environ["MKL_NUM_THREADS"] = "1"
@@ -102,7 +103,7 @@ if __name__ == "__main__":
                 td = time.time()
                 with Pool(NPROC) as pool:
                     rows += pool.map(run, jobs)
-                write_csv(f"twist_L{L}_U{U:g}_apx{APX}apy{APY}.csv", COLS, rows)
+                write_csv(f"twist_L{L}_U{U:g}_apx{APX}apy{APY}_nups{'-'.join(str(x) for x in nups)}.csv", COLS, rows)
                 print(f"   delta={d:g} done ({(time.time()-td)/60:.1f} min), "
                       f"{len(rows)} rows", flush=True)
             print(f"[L={L} U={U:g}] saved {len(rows)} rows "
