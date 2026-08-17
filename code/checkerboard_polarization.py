@@ -92,8 +92,13 @@ def run_point(args):
     # staggered real-space moment, for cross-reference
     s = stagger(L_)
     m_stag = float(np.abs((np.diag(Gu) - np.diag(Gd)) * s).sum() / n)
-    return dict(L=L_, nup=nup, n=2 * nup / n, delta=delta, U=U, h=h, seed=seed,
-                delta_tot=dt_, m_stag=m_stag)
+    row = dict(L=L_, nup=nup, n=2 * nup / n, delta=delta, U=U, h=h, seed=seed,
+               delta_tot=dt_, m_stag=m_stag)
+    # KEEP the momentum-resolved occupations. delta_tot() computes n_up(k) and
+    # n_dn(k) anyway, and without them only the scalar Delta_tot survives -- the
+    # Delta n(k) map over the Brillouin zone, which is what the PRL Fig. 1 and
+    # our own schematic actually show, would be lost.
+    return row, (nku - nkd)
 
 
 if __name__ == "__main__":
@@ -103,9 +108,17 @@ if __name__ == "__main__":
           f"deltas={DELTAS} h={HS} x {NSEED} seeds = {len(jobs)} jobs", flush=True)
     t0 = time.time()
     with Pool(NPROC) as p:
-        rows = p.map(run_point, jobs)
+        res = p.map(run_point, jobs)             # list of (row, dn(k))
+    rows = [r for r, _ in res]
+    dnk = np.array([g for _, g in res])          # (njobs, L, L)
     out = f"polarization_L{L}.csv"
     with open(out, "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
         w.writeheader(); w.writerows(rows)
-    print(f"wrote {out} ({len(rows)} rows, {(time.time()-t0)/60:.1f} min)", flush=True)
+    npz = f"dnk_L{L}.npz"
+    np.savez_compressed(npz, dnk=dnk,
+                        meta=np.array([[r["U"], r["delta"], r["h"], r["seed"], r["n"]]
+                                       for r in rows]),
+                        cols=np.array(["U", "delta", "h", "seed", "n"]))
+    print(f"wrote {out} ({len(rows)} rows) and {npz} "
+          f"(dn(k) grids, {dnk.shape}) in {(time.time()-t0)/60:.1f} min", flush=True)

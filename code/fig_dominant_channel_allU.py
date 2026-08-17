@@ -29,14 +29,14 @@ mpl.rcParams.update({
 
 CSV = "/Users/liujiaxin/Desktop/checkerboard-altermagnet/data/pairing_master.csv"
 L = 12
-CH = [("chi_son", r"on-site $s$", "#8c8c8c"),
-      ("chi_sext", r"extended $s$", "#1b7837"),
-      ("chi_d", r"$d_{x^2-y^2}$", "#2166ac"),
-      ("chi_dxy", r"$d_{xy}$", "#b2182b")]
+CH = [("chi_son", r"on-site $s$", "#8C8C8C"),
+      ("chi_sext", r"extended $s$", "#1DB954"),
+      ("chi_d", r"$d_{x^2-y^2}$", "#0047FF"),
+      ("chi_dxy", r"$d_{xy}$", "#FF1500")]
 COLS = [c for c, _, _ in CH]
 RGB = np.array([to_rgb(c) for _, _, c in CH])
-BAND = 0.22          # width of the blended boundary band, as a fraction of spread
-BLUR = 3.0           # grid steps of smoothing after interpolation
+BAND = 0.14          # width of the blended boundary band, as a fraction of spread
+BLUR = 5.0           # grid steps of smoothing after interpolation
 
 d = pd.read_csv(CSV); d = d[d.L == L]
 g = d.groupby(["U", "n", "delta"])[COLS].mean().reset_index()
