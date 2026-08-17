@@ -78,8 +78,10 @@ for j, (i, dl_) in enumerate(sel):
     a = ax[j] if len(sel) > 1 else ax
     kx, ky, dn = maps[i][:, 0], maps[i][:, 1], maps[i][:, 2]
     # fold to [-pi, pi] so the zone is centred on Gamma
-    kxf = np.where(kx > np.pi, kx - 2 * np.pi, kx)
-    kyf = np.where(ky > np.pi, ky - 2 * np.pi, ky)
+    # tolerance matters: the file writes pi as 3.141592741 (float32), larger
+    # than numpy's float64 pi, so a bare > np.pi sends the +pi points to -pi
+    kxf = np.where(kx > np.pi + 1e-6, kx - 2 * np.pi, kx)
+    kyf = np.where(ky > np.pi + 1e-6, ky - 2 * np.pi, ky)
     gx, gy = np.meshgrid(np.linspace(-np.pi, np.pi, 260),
                          np.linspace(-np.pi, np.pi, 260))
     gz = griddata((kxf, kyf), dn, (gx, gy), method="linear")

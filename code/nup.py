@@ -34,9 +34,14 @@ for j, (run, dl) in enumerate(RUNS):
     a = ax[j] if len(RUNS) > 1 else ax
     f = pd.read_csv(f'{BASE}/{run}/dir-kVals/n_{SPIN}.dat', sep=r'\s+',
                     skiprows=1, header=None, names=['kx','ky','v','e'])
-    # fold to [-pi, pi] so the zone is centred on Gamma
-    kx = np.where(f.kx > np.pi, f.kx - 2*np.pi, f.kx)
-    ky = np.where(f.ky > np.pi, f.ky - 2*np.pi, f.ky)
+    # The file already spans [-pi, pi], so no folding is needed. An earlier
+    # version folded on kx > np.pi, which was wrong twice over: the convention
+    # is not [0, 2pi), AND the file writes pi as 3.141592741 (float32), which is
+    # 8.7e-8 LARGER than numpy's float64 pi. That sent the +pi points to -pi and
+    # left the strip between 2.693 and pi with no data -- the white edge.
+    # The tolerance keeps this safe if a file ever does use [0, 2pi).
+    kx = np.where(f.kx > np.pi + 1e-6, f.kx - 2*np.pi, f.kx)
+    ky = np.where(f.ky > np.pi + 1e-6, f.ky - 2*np.pi, f.ky)
     gx, gy = np.meshgrid(np.linspace(-np.pi, np.pi, 260),
                          np.linspace(-np.pi, np.pi, 260))
     gz = griddata((kx, ky), f.v.values, (gx, gy), method='linear')
