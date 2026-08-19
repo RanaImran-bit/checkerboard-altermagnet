@@ -22,3 +22,6 @@ timing.log
 # local working area: bulky intermediates, decks, and third-party reference code
 # (ALF / DQMC sources copied from the cluster belong to their authors, not here)
 cb_model/
+
+# extracted notebook output images (survey artifact, regenerable from the cluster notebooks)
+nbfigs/
