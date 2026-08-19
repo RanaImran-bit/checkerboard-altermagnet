@@ -28,7 +28,15 @@ from cpqmc import CPMC
 import checkerboard as cb
 
 T0, T1 = -1.0, 0.3
-NW, NEQ, NBLK, BP, DT = 160, 60, 40, 16, 0.05
+# Hyperparameters, now settable from the environment so the CPQMC settings can
+# be matched to the Fortran production runs (Delta_tau = 0.01, beta = 32,
+# N_walkers = 1000, growth-control E_T = -50). NEQ is a STEP count, so the
+# projection length before measurement is beta = NEQ * DT.
+NW   = int(os.environ.get("NW", 160))
+NEQ  = int(os.environ.get("NEQ", 60))        # beta = NEQ * DT
+NBLK = int(os.environ.get("NBLK", 40))
+BP   = int(os.environ.get("BP", 16))         # tau window for chi = BP * DT
+DT   = float(os.environ.get("DT", 0.05))
 NPROC = int(os.environ.get("NPROC", min(os.cpu_count(), 30)))
 NSEED = int(os.environ.get("NSEED", 6))
 L = int(os.environ.get("L", 10))
@@ -53,6 +61,16 @@ def run_point(args):
         row[f"eq_{c}_vertex"] = float(r[f"C_{c}_tau_vertex"][0])
         row[f"chi_{c}_full"] = float(r[f"chi_{c}"])
         row[f"chi_{c}_vertex"] = float(r[f"chi_{c}_vertex"])
+    # KEEP the tau-resolved curve. Every earlier driver computed C_a(tau) and
+    # then stored only its integral, which is exactly why the truncation of
+    # chi at tau_max could not be checked afterwards. Stored as a JSON-ish
+    # semicolon list so the row stays a flat CSV record.
+    row["taus"] = ";".join(f"{t:g}" for t in r["taus"])
+    for c in CHAN:
+        row[f"Ctau_{c}_vertex"] = ";".join(f"{v:.6g}" for v in r[f"C_{c}_tau_vertex"])
+    row["beta_proj"] = NEQ * DT
+    row["tau_max"] = BP * DT
+    row["nw"] = NW
     return row
 
 
