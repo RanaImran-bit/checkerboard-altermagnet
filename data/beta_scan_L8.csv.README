@@ -1,0 +1,3 @@
+beta,L,U,delta,dtot_N,nk  -- Delta_tot/N at L=8 half filling for beta = 16 and 48.
+beta = 32 is the production value and lives in fortran_L8_L10_L12_dedup.csv.
+beta is set through nblkeq in in.dat: beta = nblkeq * nblkstps * dtau = nblkeq*320*0.01.
