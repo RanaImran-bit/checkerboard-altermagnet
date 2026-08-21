@@ -52,6 +52,18 @@ US = [float(x) for x in os.environ.get("US", "2,4,6,8").split(",")]
 DELTAS = [float(x) for x in os.environ.get("DELTAS", "0,0.2,0.4,0.6").split(",")]
 HS = [float(x) for x in os.environ.get("HS", "0.5,0.3,0.2,0.1,0.05").split(",")]
 NUPS = [int(x) for x in os.environ.get("NUPS", str(L * L // 2)).split(",")]
+# Boundary phase, +1 periodic / -1 antiperiodic. checkerboard_hopping has taken
+# apx/apy all along and the pairing drivers (checkerboard_apbc_halffilling.py,
+# checkerboard_twist.py) already use them -- only this Delta_tot driver was
+# still hard-wired to periodic, so the shell-effect test could not be run on the
+# one quantity that needs it. At U=0, half filling, PERIODIC boundaries the gap
+# is EXACTLY zero at every L and delta (2 to 12 states at E_F), so the
+# non-interacting ground state is degenerate and which states fill is decided by
+# the trial, not the physics. Antiperiodic shifts the k-mesh off the
+# high-symmetry points and closes the shell -- everywhere at L=12, but NOT at
+# L=10 for delta = 0.1 and 0.2, where 4 degenerate states survive both choices.
+APX = int(os.environ.get("APX", 1))
+APY = int(os.environ.get("APY", 1))
 
 
 def stagger(L_):
@@ -82,7 +94,7 @@ def delta_tot(Gu, Gd, L_):
 def run_point(args):
     L_, nup, delta, U, h, seed = args
     n = L_ * L_
-    K = cb.checkerboard_hopping(L_, L_, T0, T1, -delta)
+    K = cb.checkerboard_hopping(L_, L_, T0, T1, -delta, apx=APX, apy=APY)
     S = np.diag(stagger(L_))
     q = CPMC(L_, L_, nup, nup, U=U, dt=DT, nwalkers=NW, seed=seed,
              K=K + h * S, K_dn=K - h * S)
@@ -93,7 +105,7 @@ def run_point(args):
     s = stagger(L_)
     m_stag = float(np.abs((np.diag(Gu) - np.diag(Gd)) * s).sum() / n)
     row = dict(L=L_, nup=nup, n=2 * nup / n, delta=delta, U=U, h=h, seed=seed,
-               delta_tot=dt_, m_stag=m_stag)
+               apx=APX, apy=APY, delta_tot=dt_, m_stag=m_stag)
     # KEEP the momentum-resolved occupations. delta_tot() computes n_up(k) and
     # n_dn(k) anyway, and without them only the scalar Delta_tot survives -- the
     # Delta n(k) map over the Brillouin zone, which is what the PRL Fig. 1 and
@@ -111,11 +123,14 @@ if __name__ == "__main__":
         res = p.map(run_point, jobs)             # list of (row, dn(k))
     rows = [r for r, _ in res]
     dnk = np.array([g for _, g in res])          # (njobs, L, L)
-    out = f"polarization_L{L}.csv"
+    # boundary phase in the filename AND in the rows: a periodic and an
+    # antiperiodic run must never be mistaken for one another after the fact
+    bc = "" if (APX, APY) == (1, 1) else f"_apx{APX}apy{APY}"
+    out = f"polarization_L{L}{bc}.csv"
     with open(out, "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
         w.writeheader(); w.writerows(rows)
-    npz = f"dnk_L{L}.npz"
+    npz = f"dnk_L{L}{bc}.npz"
     np.savez_compressed(npz, dnk=dnk,
                         meta=np.array([[r["U"], r["delta"], r["h"], r["seed"], r["n"]]
                                        for r in rows]),
