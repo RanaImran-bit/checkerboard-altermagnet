@@ -1,6 +1,6 @@
 """Momentum-domain spin polarisation Delta_tot, via a staggered pinning field.
 
-The altermagnetic order parameter, PRL Eq. (2):
+The altermagnetic order parameter, PRB Eq. (3):
 
     Delta_tot = sum_k |n_up(k) - n_dn(k)|
 
@@ -72,23 +72,38 @@ def stagger(L_):
     return (-1.0) ** ((i // L_) + (i % L_))
 
 
-def delta_tot(Gu, Gd, L_):
-    """Delta_tot = sum_k |n_up(k) - n_dn(k)| from the real-space Green functions.
-    n_s(k) = (1/N) sum_ij exp(-i k.(r_i - r_j)) G^s_ij, obtained by a 2D FFT of
-    G reshaped onto the lattice."""
+def _nk(G, L_, offx, offy):
+    """n(k) = (1/N) sum_ij exp(-i k.(r_i - r_j)) G_ij, evaluated on the k-mesh
+    k = (2pi/L)(m + off).
+
+    off = 0 for periodic, 1/2 for antiperiodic. This offset is NOT cosmetic. The
+    antiperiodic Hamiltonian is built by flipping the sign of bonds that cross
+    the edge, so G is antiperiodic in the site difference and the folded-FFT
+    transform (which silently assumes periodicity) evaluates the occupations on
+    the unshifted mesh instead. Both meshes are complete bases so nothing blows
+    up, but the antiperiodic eigenstates get smeared across the wrong grid: at
+    U = 0, h = 0.2, L = 12 that inflates Delta_tot by 1.8-3.6x and, far worse,
+    drives A_odd from ~0 (clean d-wave) to ~1 (reads as no d-wave at all). At
+    off = 0 this reproduces the previous FFT result to machine precision, so all
+    existing periodic data is unaffected."""
     N = L_ * L_
-    idx = np.arange(N)
-    x, y = idx // L_, idx % L_
-    out = []
-    for G in (Gu, Gd):
-        # accumulate G_ij into the translation-averaged correlator g(dx,dy)
-        g = np.zeros((L_, L_))
-        dx = (x[:, None] - x[None, :]) % L_
-        dy = (y[:, None] - y[None, :]) % L_
-        np.add.at(g, (dx.ravel(), dy.ravel()), np.asarray(G).ravel())
-        g /= N
-        out.append(np.real(np.fft.fft2(g)))
-    return float(np.abs(out[0] - out[1]).sum()), out[0], out[1]
+    i = np.arange(N); x, y = i // L_, i % L_
+    mx = (2 * np.pi / L_) * (np.arange(L_) + offx)
+    my = (2 * np.pi / L_) * (np.arange(L_) + offy)
+    kx, ky = np.meshgrid(mx, my, indexing="ij")
+    P = np.exp(-1j * (kx.ravel()[:, None] * x[None, :]
+                      + ky.ravel()[:, None] * y[None, :]))
+    nk = np.real(((P @ np.asarray(G, float)) * P.conj()).sum(1)) / N
+    return nk.reshape(L_, L_)
+
+
+def delta_tot(Gu, Gd, L_, apx=1, apy=1):
+    """Delta_tot = sum_k |n_up(k) - n_dn(k)| on the mesh set by the boundary
+    condition."""
+    ox = 0.0 if apx == 1 else 0.5
+    oy = 0.0 if apy == 1 else 0.5
+    a = _nk(Gu, L_, ox, oy); b = _nk(Gd, L_, ox, oy)
+    return float(np.abs(a - b).sum()), a, b
 
 
 def run_point(args):
@@ -100,7 +115,7 @@ def run_point(args):
              K=K + h * S, K_dn=K - h * S)
     r = q.run_bp_obs(nequil=NEQ, nblocks=NBLK, bp=BP)
     Gu = np.array(r["green_up"]); Gd = np.array(r["green_dn"])
-    dt_, nku, nkd = delta_tot(Gu, Gd, L_)
+    dt_, nku, nkd = delta_tot(Gu, Gd, L_, apx=APX, apy=APY)
     # staggered real-space moment, for cross-reference
     s = stagger(L_)
     m_stag = float(np.abs((np.diag(Gu) - np.diag(Gd)) * s).sum() / n)
