@@ -44,7 +44,14 @@ from cpqmc import CPMC
 import checkerboard as cb
 
 T0, T1 = -1.0, 0.3
-NW, NEQ, NBLK, BP, DT = 160, 60, 30, 12, 0.05
+# Defaults unchanged, so every previously committed run reproduces bit-for-bit.
+# Exposed as env vars so the h -> 0 extrapolation can be run at a longer
+# projection length than the exploratory default beta = NEQ*DT = 3.
+NW   = int(os.environ.get("NW", 160))
+NEQ  = int(os.environ.get("NEQ", 60))        # beta = NEQ * DT
+NBLK = int(os.environ.get("NBLK", 30))
+BP   = int(os.environ.get("BP", 12))
+DT   = float(os.environ.get("DT", 0.05))
 NPROC = int(os.environ.get("NPROC", min(os.cpu_count(), 30)))
 NSEED = int(os.environ.get("NSEED", 6))
 L = int(os.environ.get("L", 12))

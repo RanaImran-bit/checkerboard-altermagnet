@@ -94,6 +94,45 @@ for h in $NODES; do
 done
 
 echo
+echo "### 3c. h-scan  (Delta_tot vs pinning field; CSV written only at the END)"
+for h in $NODES; do
+  out=$($SSH $h '
+    cd ~/hscan 2>/dev/null || exit 0
+    n=$(ps -u $USER -o args= | grep -c "[c]heckerboard_polarization.py")
+    for f in hscan_L*.log; do
+      [ -f "$f" ] || continue
+      tot=$(grep -o "= [0-9]* jobs" "$f" | head -1 | tr -dc 0-9)
+      if grep -q "^wrote " "$f"; then
+        printf "    %-16s DONE  %s\n" "$f" "$(grep "^wrote " "$f" | tail -1)"
+      else
+        printf "    %-16s running (%s cells total, no progress output until done)\n" "$f" "${tot:-?}"
+      fi
+    done
+    [ "$n" -gt 0 ] && echo "    workers: $n"
+  ' 2>/dev/null)
+  [ -n "$out" ] && { echo "  [$h]"; echo "$out"; }
+done
+
+echo
+echo "### 3d. chi vertex finite-size  (L=8/10 to match the committed L=12 run)"
+for h in $NODES; do
+  out=$($SSH $h '
+    cd ~/chi_fss 2>/dev/null || exit 0
+    n=$(ps -u $USER -o args= | grep -c "[c]heckerboard_eqtime.py")
+    for f in chifss_L*.log; do
+      [ -f "$f" ] || continue
+      if grep -q "^wrote " "$f"; then
+        printf "    %-16s DONE  %s\n" "$f" "$(grep "^wrote " "$f" | tail -1)"
+      else
+        printf "    %-16s running\n" "$f"
+      fi
+    done
+    [ "$n" -gt 0 ] && echo "    workers: $n"
+  ' 2>/dev/null)
+  [ -n "$out" ] && { echo "  [$h]"; echo "$out"; }
+done
+
+echo
 echo "### 4. 113new SLURM  (our jobs are named py12u* / calib113)"
 ssh -n -o ConnectTimeout=15 -o BatchMode=yes 113new '
   squeue -u $USER -o "%.9i %.14j %.2t %.11M %.5C %R" 2>/dev/null | grep -E "JOBID|py12|calib" || echo "  none of ours queued"
