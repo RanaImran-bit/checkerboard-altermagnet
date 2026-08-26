@@ -1,27 +1,3 @@
-# Python
 __pycache__/
-*.py[cod]
-.ipynb_checkpoints/
-
-# OS / editor
+*.pyc
 .DS_Store
-*.swp
-
-# logs and cluster scratch output (curated CSVs in data/ are kept)
-*.log
-chi_grid_U*.csv
-chi_grid_all.csv
-timing.log
-
-# keep curated data CSVs (cluster scratch copies elsewhere stay ignored)
-!data/chi_grid*.csv
-
-# meeting slides / personal notes (kept locally)
-*.pptx
-
-# local working area: bulky intermediates, decks, and third-party reference code
-# (ALF / DQMC sources copied from the cluster belong to their authors, not here)
-cb_model/
-
-# extracted notebook output images (survey artifact, regenerable from the cluster notebooks)
-nbfigs/
