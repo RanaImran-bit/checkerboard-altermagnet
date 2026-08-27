@@ -22,6 +22,7 @@ visible. Contour levels are per panel, since the channels differ in range.
 """
 import numpy as np, pandas as pd, matplotlib as mpl, matplotlib.pyplot as plt
 from scipy.interpolate import griddata
+from gridinterp import reggrid
 
 mpl.rcParams.update({
     'font.family':'serif', 'font.serif':['DejaVu Serif'],
@@ -53,11 +54,11 @@ fig, ax = plt.subplots(len(rows), 4, figsize=(21.0, 4.6*len(rows)),
 for r, (nv, t) in enumerate(rows):
     gx, gy = np.meshgrid(np.linspace(t.delta.min(), t.delta.max(), 300),
                          np.linspace(t.U.min(), t.U.max(), 300))
-    BG = griddata((t.delta.values, t.U.values), t.dtot_N.values, (gx, gy), method='linear')
+    BG = reggrid(t, 'delta', 'U', 'dtot_N', gx, gy)
     for c, (key, lab) in enumerate(CH):
         a = ax[r, c]
         im = a.contourf(gx, gy, BG, levels=LEV, cmap='jet', extend='both')
-        F = griddata((t.delta.values, t.U.values), t[key].values, (gx, gy), method='linear')
+        F = reggrid(t, 'delta', 'U', key, gx, gy)
         cs = a.contour(gx, gy, F, levels=6, colors='k', linewidths=1.2)
         a.clabel(cs, inline=True, fontsize=8, fmt='%.2f')
         if r == 0: a.set_title(f'contours: {lab}', fontsize=15)

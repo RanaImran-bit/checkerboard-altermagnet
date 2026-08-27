@@ -22,6 +22,7 @@ the finite-size trend is invisible.
 """
 import numpy as np, pandas as pd, matplotlib as mpl, matplotlib.pyplot as plt
 from scipy.interpolate import griddata
+from gridinterp import reggrid
 
 mpl.rcParams.update({
     'font.family':'serif', 'font.serif':['DejaVu Serif'],
@@ -43,7 +44,7 @@ for i, L in enumerate(LS):
     a = ax[i]; s = d[d.L == L]
     gx, gy = np.meshgrid(np.linspace(s.delta.min(), s.delta.max(), 300),
                          np.linspace(s.U.min(), s.U.max(), 300))
-    Z = griddata((s.delta.values, s.U.values), s.dtot_N.values, (gx, gy), method='linear')
+    Z = reggrid(s, 'delta', 'U', 'dtot_N', gx, gy)
     assert not np.isnan(Z).any(), f'L={L}: hull hole -- grid is not complete'
     im = a.contourf(gx, gy, Z, levels=LEV, cmap='jet', extend='both')
     a.set_title(rf'$L={L}$', fontsize=17)

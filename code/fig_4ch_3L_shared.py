@@ -23,6 +23,7 @@ N_walkers = 1000). The beta = 3 issue affected only the Python chi drivers.
 """
 import numpy as np, pandas as pd, matplotlib as mpl, matplotlib.pyplot as plt
 from scipy.interpolate import griddata
+from gridinterp import reggrid
 
 mpl.rcParams.update({
     'font.family':'serif', 'font.serif':['DejaVu Serif'],
@@ -49,7 +50,7 @@ for j, (key, lab) in enumerate(CH):
     lev = LEV
     for i, L in enumerate(LS):
         a = ax[i, j]; s = d[d.L == L]
-        Z = griddata((s.delta.values, s.U.values), s[key].values, (gx, gy), method='linear')
+        Z = reggrid(s, 'delta', 'U', key, gx, gy)
         assert not np.isnan(Z).any(), f'L={L} {key}: hull hole'
         im = a.contourf(gx, gy, Z, levels=lev, cmap='jet', extend='both')
         if i == 0: a.set_title(lab, fontsize=17, pad=10)

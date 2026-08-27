@@ -17,6 +17,7 @@ staggered moment M and a finite delta.
 """
 import numpy as np, pandas as pd, matplotlib as mpl, matplotlib.pyplot as plt
 from scipy.interpolate import griddata
+from gridinterp import reggrid
 
 mpl.rcParams.update({
     "font.family": "serif", "font.serif": ["DejaVu Serif"],
@@ -36,9 +37,8 @@ fig, ax = plt.subplots(1, 2, figsize=(14.4, 5.6))
 
 # (a) (U, delta) at L = 14, half filling -- the PRL Fig. 1(a) grid
 h = d[(d.L == 14) & np.isclose(d.n, 1.0)]
-gi = griddata((h.delta.values, h.U.values), h.delta_tot.values,
-              tuple(np.meshgrid(np.linspace(0, 0.4, 300), np.linspace(0, 5, 300))),
-              method="linear")
+_gx, _gy = np.meshgrid(np.linspace(0, 0.4, 300), np.linspace(0, 5, 300))
+gi = reggrid(h, 'delta', 'U', 'delta_tot', _gx, _gy)
 im = ax[0].contourf(np.linspace(0, 0.4, 300), np.linspace(0, 5, 300), gi,
                     levels=100, cmap="jet", extend="both")
 cb = fig.colorbar(im, ax=ax[0], pad=0.02)
@@ -49,9 +49,8 @@ ax[0].set_title(r"(a) $L=14$, half filling", fontsize=17)
 
 # (b) (n, delta) at L = 10, U = 4
 g10 = d[(d.L == 10) & (d.U == 4.0)]
-gi2 = griddata((g10.n.values, g10.delta.values), g10.delta_tot.values,
-               tuple(np.meshgrid(np.linspace(0.5, 0.98, 300),
-                                 np.linspace(0, 0.4, 300))), method="linear")
+_gx2, _gy2 = np.meshgrid(np.linspace(0.5, 0.98, 300), np.linspace(0, 0.4, 300))
+gi2 = reggrid(g10, 'n', 'delta', 'delta_tot', _gx2, _gy2)
 im2 = ax[1].contourf(np.linspace(0.5, 0.98, 300), np.linspace(0, 0.4, 300), gi2,
                      levels=100, cmap="jet", extend="both")
 cb2 = fig.colorbar(im2, ax=ax[1], pad=0.02)

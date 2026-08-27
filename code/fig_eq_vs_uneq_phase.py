@@ -14,6 +14,7 @@ from matplotlib.colors import to_rgb
 from matplotlib.patches import Patch
 from scipy.interpolate import griddata
 from scipy.ndimage import gaussian_filter
+from gridinterp import reggrid
 
 mpl.rcParams.update({
     "font.family": "serif", "font.serif": ["DejaVu Serif"],
@@ -49,8 +50,8 @@ for k, (T, lab) in enumerate([(EQ, "(a) equal time   " r"$\tau=0$"),
     a = ax[k]
     pts = T[["n", "delta"]].values
     F = np.stack([gaussian_filter(
-        griddata(pts, T[c].values, (NG, DG), method="linear",
-                 fill_value=np.nan), 4.0) for c in KEYS])
+        reggrid(T, "n", "delta", c, NG, DG,
+                fill_value=np.nan), 4.0) for c in KEYS])
     order = np.argsort(-F, axis=0)
     i1, i2 = order[0], order[1]
     yy, xx = np.indices(i1.shape)

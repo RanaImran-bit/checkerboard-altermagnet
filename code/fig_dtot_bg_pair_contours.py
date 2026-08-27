@@ -22,6 +22,7 @@ the U grid is uneven below 2, so shading would smooth across an unsampled gap.
 """
 import numpy as np, pandas as pd, matplotlib as mpl, matplotlib.pyplot as plt
 from scipy.interpolate import griddata
+from gridinterp import reggrid
 
 mpl.rcParams.update({
     'font.family':'serif', 'font.serif':['DejaVu Serif'],
@@ -38,7 +39,7 @@ CH = [('son', r'on-site $s$'), ('sext', r'extended $s$'),
 
 gx, gy = np.meshgrid(np.linspace(d.delta.min(), d.delta.max(), 300),
                      np.linspace(d.U.min(), d.U.max(), 300))
-BG = griddata((d.delta.values, d.U.values), d.dtot_N.values, (gx, gy), method='linear')
+BG = reggrid(d, 'delta', 'U', 'dtot_N', gx, gy)
 assert not np.isnan(BG).any(), 'hull hole -- grid is not complete'
 
 fig, ax = plt.subplots(1, 4, figsize=(22.0, 4.9), facecolor='white',
@@ -48,7 +49,7 @@ for c, (key, lab) in enumerate(CH):
     # identical background in every panel: colour is ALWAYS Delta_tot
     im = a.contourf(gx, gy, BG, levels=100, cmap='jet',
                     vmin=d.dtot_N.min(), vmax=d.dtot_N.max(), extend='both')
-    F = griddata((d.delta.values, d.U.values), d[key].values, (gx, gy), method='linear')
+    F = reggrid(d, 'delta', 'U', key, gx, gy)
     cs = a.contour(gx, gy, F, levels=7, colors='k', linewidths=1.3)
     a.clabel(cs, inline=True, fontsize=9, fmt='%.2f')
     a.plot(d.delta, d.U, 'o', ms=4, mfc='none', mec='k', mew=0.8)

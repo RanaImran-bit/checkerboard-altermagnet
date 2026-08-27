@@ -23,6 +23,7 @@ construction.
 """
 import numpy as np, pandas as pd, matplotlib as mpl, matplotlib.pyplot as plt
 from scipy.interpolate import griddata
+from gridinterp import reggrid
 
 mpl.rcParams.update({
     'font.family':'serif', 'font.serif':['DejaVu Serif'],
@@ -47,8 +48,7 @@ gx, gy = np.meshgrid(np.linspace(d.delta.min(), d.delta.max(), 300),
                      np.linspace(d.U.min(), d.U.max(), 300))
 for c, (key, lab) in enumerate(PAN):
     a = ax[c]
-    gi = griddata((d.delta.values, d.U.values), d[key].values, (gx, gy),
-                  method='linear')
+    gi = reggrid(d, 'delta', 'U', key, gx, gy)
     assert not np.isnan(gi).any(), f'{key}: hull hole -- grid is not complete'
     im = a.contourf(gx, gy, gi, levels=100, cmap='jet', extend='both')
     cb = fig.colorbar(im, ax=a, pad=0.02)

@@ -19,6 +19,7 @@ contour lines on top.
 """
 import numpy as np, pandas as pd, matplotlib as mpl, matplotlib.pyplot as plt
 from scipy.interpolate import griddata
+from gridinterp import reggrid
 
 mpl.rcParams.update({
     'font.family':'serif', 'font.serif':['DejaVu Serif'],
@@ -44,7 +45,7 @@ fig, ax = plt.subplots(1, 4, figsize=(21.0, 4.7), facecolor='white',
                        sharex=True, sharey=True)
 for c, (key, lab) in enumerate(CH):
     a = ax[c]
-    Z = griddata((d.delta.values, d.U.values), d[key].values, (gx, gy), method='linear')
+    Z = reggrid(d, 'delta', 'U', key, gx, gy)
     assert not np.isnan(Z).any(), f'{key}: hull hole -- grid is not complete'
     im = a.contourf(gx, gy, Z, levels=LEV, cmap='jet', extend='both')
     a.set_title(f'({chr(97+c)}) {lab}', fontsize=17)

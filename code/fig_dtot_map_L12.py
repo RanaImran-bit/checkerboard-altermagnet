@@ -27,6 +27,7 @@ uneven below 2, so shading would smooth across a wide unsampled stretch.
 """
 import numpy as np, pandas as pd, matplotlib as mpl, matplotlib.pyplot as plt
 from scipy.interpolate import griddata
+from gridinterp import reggrid
 
 mpl.rcParams.update({
     'font.family':'serif', 'font.serif':['DejaVu Serif'],
@@ -41,7 +42,7 @@ d = d[np.isclose(d.n, 1.0) & (d.U >= 2)]
 
 gx, gy = np.meshgrid(np.linspace(d.delta.min(), d.delta.max(), 300),
                      np.linspace(d.U.min(), d.U.max(), 300))
-Z = griddata((d.delta.values, d.U.values), d.dtot_N.values, (gx, gy), method='linear')
+Z = reggrid(d, 'delta', 'U', 'dtot_N', gx, gy)
 assert not np.isnan(Z).any(), 'hull hole -- grid is not complete'
 
 fig, a = plt.subplots(figsize=(7.6, 5.6), facecolor='white')

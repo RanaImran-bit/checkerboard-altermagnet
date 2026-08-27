@@ -8,6 +8,7 @@ import os, re
 import numpy as np, pandas as pd
 import matplotlib.pyplot as plt
 from scipy.interpolate import griddata
+from gridinterp import reggrid
 
 BASE = "/home/phd25imran/L14_archive"
 U, L = 4.0, 14
@@ -51,7 +52,7 @@ for ax, col, title in zip(axes, cols, titles):
         ni = np.linspace(df.n.min(), df.n.max(), 120)
         di = np.linspace(df.delta.min(), df.delta.max(), 120)
         NI, DI = np.meshgrid(ni, di)
-        G = griddata((df.n, df.delta), df['diff'], (NI, DI), method='linear')
+        G = reggrid(df, 'n', 'delta', 'diff', NI, DI)
         ax.contour(NI, DI, G, levels=[0], colors='k', linewidths=2.0, linestyles='--')
     else:
         sc = ax.scatter(df.n, df.delta, c=df[col], cmap='viridis',

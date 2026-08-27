@@ -19,6 +19,7 @@ griddata returns NaN outside it. Open circles mark the measured points.
 """
 import numpy as np, pandas as pd, matplotlib as mpl, matplotlib.pyplot as plt
 from scipy.interpolate import griddata
+from gridinterp import reggrid
 
 mpl.rcParams.update({
     "font.family": "serif", "font.serif": ["DejaVu Serif"],
@@ -39,7 +40,7 @@ fig, ax = plt.subplots(1, 2, figsize=(14.4, 5.6))
 
 h = d[(d.L == 14) & np.isclose(d.n, 1.0)]
 gx, gy = np.meshgrid(np.linspace(0, 0.4, 300), np.linspace(0, 5, 300))
-gi = griddata((h.delta.values, h.U.values), h.dtot_N.values, (gx, gy), method="linear")
+gi = reggrid(h, 'delta', 'U', 'dtot_N', gx, gy)
 im = ax[0].contourf(gx, gy, gi, levels=100, cmap="jet", extend="both")
 cb = fig.colorbar(im, ax=ax[0], pad=0.02)
 cb.set_label(r"$\Delta_{tot}$", fontsize=17, rotation=0, labelpad=-38, y=1.10)
@@ -50,8 +51,7 @@ ax[0].set_title(r"(a) $L=14$, half filling", fontsize=17)
 
 g10 = d[(d.L == 10) & (d.U == 4.0)]
 gx2, gy2 = np.meshgrid(np.linspace(0.5, 0.98, 300), np.linspace(0, 0.4, 300))
-gi2 = griddata((g10.n.values, g10.delta.values), g10.dtot_N.values,
-               (gx2, gy2), method="linear")
+gi2 = reggrid(g10, 'n', 'delta', 'dtot_N', gx2, gy2)
 im2 = ax[1].contourf(gx2, gy2, gi2, levels=100, cmap="jet", extend="both")
 cb2 = fig.colorbar(im2, ax=ax[1], pad=0.02)
 cb2.set_label(r"$\Delta_{tot}$", fontsize=17, rotation=0, labelpad=-38, y=1.10)

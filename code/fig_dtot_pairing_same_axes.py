@@ -16,6 +16,7 @@ import numpy as np, pandas as pd, matplotlib as mpl, matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.patches import Patch
 from scipy.interpolate import griddata
+from gridinterp import reggrid
 
 mpl.rcParams.update({
     "font.family": "serif", "font.serif": ["DejaVu Serif"],
@@ -46,8 +47,7 @@ for r, (T, xk, yk, xl, yl, ttl) in enumerate(ROWS):
                          np.linspace(T[yk].min(), T[yk].max(), 260))
     for c, (fld, flab) in enumerate(FIELDS):
         a = ax[r, c]
-        gi = griddata((T[xk].values, T[yk].values), T[fld].values, (gx, gy),
-                      method="linear")
+        gi = reggrid(T, xk, yk, fld, gx, gy)
         im = a.contourf(gx, gy, gi, levels=100, cmap="jet", extend="both")
         cb = fig.colorbar(im, ax=a, pad=0.02)
         cb.set_label(flab, fontsize=13); cb.ax.tick_params(labelsize=10)
