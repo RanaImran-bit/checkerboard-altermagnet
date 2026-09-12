@@ -23,27 +23,36 @@ from cpqmc import _green   # module-level Green's helper
 # ----------------------------------------------------------------------
 # 1. checkerboard hopping (matches checkerboard_ed.build_hopping / GetK)
 # ----------------------------------------------------------------------
-def checkerboard_hopping(lx, ly, t0=-1.0, t1=0.3, t2=0.0):
+def checkerboard_hopping(lx, ly, t0=-1.0, t1=0.3, t2=0.0, apx=1, apy=1):
     """nsites x nsites checkerboard one-body matrix (spin-independent).
     A sites (x+y even): '/'=t1+t2, '\\'=t1-t2 ; B sites (x+y odd): swapped.
-    For delta: pass t2 = -delta. Feed as CPMC(..., K=this, K_dn=None)."""
+    For delta: pass t2 = -delta. Feed as CPMC(..., K=this, K_dn=None).
+
+    apx, apy in {+1 (periodic, default), -1 (anti-periodic)}: boundary phase in x/y.
+    Anti-periodic (-1) stays REAL (so CPQMC works unchanged) and shifts the k-grid off
+    (0,pi),(pi,0), opening a gap at HALF-FILLING (open-shell under periodic BC). apx=apy=1
+    reproduces the original periodic matrix bit-for-bit."""
     n = lx * ly
     K = np.zeros((n, n))
     tp = t1 + t2
     tm = t1 - t2
     def idx(x, y): return (x % lx) * ly + (y % ly)
+    def bs(x, y, dx, dy):                     # boundary sign for a hop crossing the edge
+        sx = apx if (x + dx < 0 or x + dx >= lx) else 1
+        sy = apy if (y + dy < 0 or y + dy >= ly) else 1
+        return sx * sy
     for x in range(lx):
         for y in range(ly):
             i = idx(x, y)
-            K[i, idx(x + 1, y)] = t0
-            K[i, idx(x - 1, y)] = t0
-            K[i, idx(x, y + 1)] = t0
-            K[i, idx(x, y - 1)] = t0
+            K[i, idx(x + 1, y)] = t0 * bs(x, y, 1, 0)
+            K[i, idx(x - 1, y)] = t0 * bs(x, y, -1, 0)
+            K[i, idx(x, y + 1)] = t0 * bs(x, y, 0, 1)
+            K[i, idx(x, y - 1)] = t0 * bs(x, y, 0, -1)
             a, b = (tp, tm) if (x + y) % 2 == 0 else (tm, tp)
-            K[i, idx(x + 1, y + 1)] = a       # '/'  main diagonal
-            K[i, idx(x - 1, y - 1)] = a
-            K[i, idx(x + 1, y - 1)] = b       # '\'  anti-diagonal
-            K[i, idx(x - 1, y + 1)] = b
+            K[i, idx(x + 1, y + 1)] = a * bs(x, y, 1, 1)    # '/'  main diagonal
+            K[i, idx(x - 1, y - 1)] = a * bs(x, y, -1, -1)
+            K[i, idx(x + 1, y - 1)] = b * bs(x, y, 1, -1)   # '\'  anti-diagonal
+            K[i, idx(x - 1, y + 1)] = b * bs(x, y, -1, 1)
     return 0.5 * (K + K.T)
 
 

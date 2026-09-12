@@ -1,0 +1,288 @@
+# HANDOVER — checkerboard altermagnetism paper
+
+Last updated 2026-08-27. **Read this first in any new session.**
+
+---
+
+## 1. Where the paper stands
+
+Target: **PRB**. Title locked:
+
+> Emergent altermagnetic correlations and $d_{xy}$ pairing in the checkerboard Hubbard model
+
+**Written and settled:** title, abstract (~180 words, no measured numbers in it —
+published abstracts in this field carry none), all five introduction paragraphs
+plus the roadmap, and the section skeleton. See `manuscript/`.
+
+**Not written:** Sections II–VII. Section II is the next task.
+
+**Open items:**
+
+1. The full bibliographic entry for the group's published PRB that defines
+   $\Delta_{\rm tot}$ as Eq. (3). Only `INCOMPLETE` marker in the draft; Sec. II
+   needs it.
+2. **Decision pending: does the equal-time panel stay in the paper at all?** The
+   vertex now covers the same three sizes, carries error bars, is the standard
+   measure of a pairing instability, and has no Fortran/Python discrepancy.
+   Recommendation is to drop it from the main figures and keep the data, pending
+   the Δτ test in §9.
+
+### Introduction structure (all five written)
+
+1. lattice geometry sets the symmetry of the dominant instability
+2. what altermagnetism is, MnTe and CrSb (RuO$_2$ deliberately dropped — bulk
+   $\mu$SR and neutron work find no long-range order, so it is contested)
+3. the gap: spin-dependent hopping puts the splitting in at $U=0$; the
+   interaction-driven studies are each controlled only in part of the phase diagram
+4. the checkerboard, and "Here we show"
+5. method and the two rigor points (symmetry ratios, the null control)
+
+**21 references** so far, target ~70. All in the conversation; check they made it
+into `references.bib`.
+
+---
+
+## 2. Results, with the numbers
+
+| result | value | where |
+|---|---|---|
+| $\Delta_{\rm tot}$ at $U=0$ | **exactly 0** at every $\delta$ | `data/fortran_L12_all49.csv` |
+| symmetry classification | **126/126 cells $d_{xy}$**, $L=8,10,12$; $A_{\rm odd}$ 0.004–0.263, $M_{\rm odd}$ 1.24–2.00 | `data/classify_3L.csv` |
+| $\delta=0$ null control | floor **6.26(2.14)×10⁻⁴** per site; signal **23–114×** above | `data/delta0_control_L12.csv` |
+| pairing vertex at $U=0$ | **zero in all four channels** | `data/chi_L12/` |
+| $d_{xy}$ leads | above $\delta_c \approx 0.19$ in the vertex, **flat in $U$** (spread 0.028 at $L=12$); peak at $\delta=0.4$. The older "$\delta \gtrsim 0.3$" was equal-time and is superseded | `data/chi_vertex_summary_3L.csv` |
+| $d_{xy}$ grows with size | **2.18–2.38×** from $L=8$ to $L=12$, every $U$ | `data/chi_vertex_summary_3L.csv` |
+| vertex crossover **converges** | spread across $U$ = 0.148, 0.049, **0.028** at $L=8,10,12$; mean $\delta_c$ = 0.235, 0.197, **0.192** | `code/check_vertex_fss.py` |
+| $d_{x^2-y^2}$ never repulsive | positive in **126/126** vertex cells, all three sizes | same |
+| $d_{xy}$ optimal anisotropy | $\delta = 0.4$ at essentially every size and $U$ | same |
+| pairing tracks magnetism | partial corr with $\Delta_{\rm tot}$, $\delta$ and $U$ removed: $d_{xy}$ **+0.57**, $d_{x^2-y^2}$ **−0.51** | `code/check_pairing_vs_dtot.py` |
+| $\beta$ convergence | 32→48 changes 0.1–4.1%, no drift | on 251 |
+
+### The finite-size problem — READ THIS
+
+**Long-range order is NOT established.** Two independent signs:
+
+- $S(\pi,\pi)/N$ falls as $1/N$ at **every filling** from $n=0.5$ to 1.0, at $U$ up
+  to 8, across $L=8,10,12$. Ratios 0.39–0.54 where pure $1/N$ predicts 0.44.
+- The $h\to0$ intercept is nonzero at each size but **decreases with $L$**:
+  0.03269, 0.02363, 0.01845, 0.01714 at $L=8,10,12,14$.
+
+**L=16 has landed and it settles this.** On four points the extrapolation looked
+ambiguous and the $1/L^2$ fit ($\chi^2$/dof 2.1) beat $1/L$ (7.6) by 3.6×, which
+leaned toward a finite intercept. L=16 measured **0.00734 ± 0.00109** against the
+two predictions of 0.01325 ($1/L$) and 0.01457 ($1/L^2$). The drop from L=14 is
+**0.43×** where $1/L$ predicts 0.88, and the $1/L^2$ $\chi^2$/dof went **2.1 → 11.9**.
+
+**Conclusion: no long-range order. The intercept is a finite-size effect.** The
+abstract and ¶5 wording, "correlations… remain short ranged on the lattices
+studied", is correct and should stay. Do not upgrade it to "order".
+
+### The δ=0.3 trap
+
+The boundary-condition test (`analyze_bc_test.py`) found the slope
+$\Delta_{\rm tot}(U{=}5)-\Delta_{\rm tot}(U{=}2)$ agrees between periodic and
+antiperiodic at $\delta=0.1$ (both −3.5) and $\delta=0.5$ (both +3.0), but
+**disagrees at $\delta=0.3$** where the antiperiodic value is consistent with zero.
+δ ≈ 0.3 is the crossover where the slope passes through zero. **Never quote a
+slope or a sign at δ = 0.3.**
+
+### Never quote L = 6
+
+L=6 once gave a 5.3σ **wrong** answer ($d_{x^2-y^2}$ "enhanced by δ"). L=8, 10 and
+12 all give the opposite. Any old slide or note saying anisotropy enhances
+$d_{x^2-y^2}$ is that error.
+
+---
+
+## 3. Figures
+
+Four built, in `manuscript/figures/` (PDF + PNG), generated by `code/make_fig*.py`:
+
+- **Fig. 3** $\Delta_{\rm tot}$ over the $(U,\delta)$ grid, $U=0$ column exactly zero
+- **Fig. 4** symmetry classification, $A_{\rm odd}$ vs $M_{\rm odd}$, plus the C4 and
+  mirror sums shown directly
+- **Fig. 5** null control on a log axis
+- **Fig. 9** pairing vertex, three sizes
+
+**Fig. 6 (h→0 and finite size) is unblocked** — L=16 finished, 2941.8 min, 30/30
+rows, `~/hscan/polarization_L16.csv` on 256, now in `data/hscan/`. Still to build.
+
+**New since 27 Aug**, all in `manuscript/figures/`:
+
+- `fig_2row_eqtime_vertex_3L` equal time over time integrated, $L=8,10,12$ — the
+  clearest single figure we have; the crossover straightens down the vertex row
+- `fig_ddiff_vertex_3L` which channel leads, vertex, three sizes
+- `fig_dsum_L12` / `fig_ddiff_L12` sum and difference as plain heat maps
+- `fig_dchannels_*` the contour-overlay versions, several palettes
+
+Generators are `code/fig_*_251.py` (self-contained, paste-and-run on 251, several
+build their own summaries from the raw runs) and `code/make_fig_*.py` (repo).
+
+Plan is 10 main + 3 appendix. Reused from the old draft: `1_dnk`, `2_vhs_dos`,
+`3_phase_diagram` (+`4_rp` merged in), `5_sdw`, `7_pairing_pd`. Dropped:
+`8_d_crossover`. Undecided: `6_pairing` (doped, L=14) — suggest folding into Fig. 10.
+
+**Palette:** Okabe–Ito subset, verified colour-vision safe (worst pair separation
+11.4 in OKLab×100 against a target of 8). Widths 3.375 / 6.75 in are REVTeX single
+/ double column.
+
+**Never use `scipy.griddata` for a (U, δ) or (n, δ) map.** Use
+`code/gridinterp.reggrid`. See §9. It also raises on an incomplete grid instead of
+interpolating across the hole, which is how the L=14 problem surfaced.
+
+**Never use `np.rot90` for the C4 partner map.** It is off by one grid step on an
+FFT-indexed mesh and returns 0.42–0.63 for pure d-wave harmonics that must give 0.
+Use the explicit lookup in `code/classify_dnk.py`.
+
+---
+
+## 4. Data locations
+
+**Consolidated on 251 at `~/results/`** — 327 MB, 2063 files, with `MANIFEST.md`:
+
+```
+fortran_L12/      49 cells, production grid
+fortran_L8_L10/   49 + 49 cells
+delta0/           6 cells, the null control
+bc_test/          periodic vs antiperiodic
+chi_L12/          pairing susceptibility, 7 U values
+pan/              Pan et al. channel comparison
+lieb_sq/          126 cells, the no-order result
+lieb_mam/         m_am by trial type
+repos/            both working trees + full git history as .bundle
+figdata/          the 7 files the figure scripts need, flat
+collected/eqt_b32/  L=8 and L=10 vertex, FULL U grid — see §9
+lieb_figdata/     sq/ and mam/ for the Lieb figures
+```
+
+Figure scripts on 251: `~/results/make_figures.py` (checkerboard, all four) and
+`~/lieb-altermagnet/code/make_lieb_figs.py`.
+
+**Nodes:** 250–256 usable. **256 has no `make`** — Python only, no Fortran builds.
+**257 and 258 refuse our SSH key** (258 defaults to a different user, `amax`).
+113new cores are **~2.6× slower** than the 250-series: one L=12 χ cell is 29.4 h
+there vs 11.3 h on 256. Benchmark on the machine you will actually use.
+
+---
+
+## 5. Jobs — CHECK THESE FIRST
+
+```bash
+bash ~/Desktop/checkerboard-altermagnet/status.sh
+```
+
+Covers all five job types across 250–256 and 113new. Read-only.
+
+**As of 27 Aug, NOTHING is running on any node.** Swept 250–256 and 113new: every
+python process is an Ubuntu release-upgrader daemon, the VS Code server, or a
+Jupyter kernel on 251. 257 still refuses our key.
+
+Everything finished, including the L=16 h-scan. **The one job worth queueing** is
+the Δτ test in §9: one column of the Python vertex grid at Δτ = 0.01, U = 5, seven
+δ. About 5× a normal cell because the projection needs 5× the steps.
+
+---
+
+## 6. The Lieb arm — finished, and it is a NULL
+
+Kaushal & Franz (PRL 135, 156502) and Dürrnagel *et al.* (PRL 135, 036502) both
+state unbiased studies of this model are lacking. We did one.
+
+- **Confirms** the literature: $d_{x^2-y^2}$ symmetry ($A_{\rm odd}=M_{\rm odd}=0.000$),
+  and we get it with **uniform U** rather than their B/C-only U
+- **Confirms**: mean-field onset between $U=4$ and 6, sizes collapse
+- **New**: $\Delta_{\rm tot}$ is **exactly zero** at $n=2$ and $n=4$ — filled bands
+  carry no occupation information. It revives on doping (~0.10/site)
+- **New**: the symmetry-broken order parameter is **trial-determined** — 0.79
+  frozen-UHF vs 0.07 free-electron at the same $U=10$, never converging
+- **Contradicts**: $m_{\rm am}^2 \times N_{\rm cell}$ is **flat** at every $U$ up to
+  10, so no long-range order at $L \le 8$ (192 sites)
+
+7 figures in `~/Desktop/lieb-altermagnet/figs/`, 12-slide deck in `docs/`.
+
+**Decision made: the Lieb arm does not go in the checkerboard paper as a
+supporting result.** It is a null and belongs in its own paper. Optionally
+Appendix C.
+
+**The Lieb repo has NO GitHub remote** — local only, plus a bundle on 251.
+
+---
+
+## 7. Slide decks
+
+- `docs/code_changes_checkerboard.pptx` — 14 slides, Fortran + Python code changes,
+  for the supervisor's records. `docs/speaking_notes.pdf` accompanies it.
+- `~/Desktop/lieb-altermagnet/docs/lieb_findings.pptx` — 12 slides, literature vs
+  our findings.
+
+Generators: `code/build_deck.py`, `code/build_lieb.py`. QA: `code/qa.py`.
+**`qa.py` checks PowerPoint text boxes only — it cannot see inside an embedded
+image.** Figure-internal collisions must be caught by looking at the figure.
+
+---
+
+## 8. Standing rules
+
+- Manuscript prose goes through the **academic-humanizer** skill. No em-dashes, no
+  semicolons, `d_xy` / `d_x2-y2` never B2g/B1g.
+- **Save every script to the repo before running it.** No throwaway heredocs.
+  Always `python -u` with incremental writes — a driver that writes only at the end
+  cost us a 0-byte log and several hours once already.
+- **Only commit cluster-tested, user-agreed work.**
+- Never change machine or system settings on the lab servers. User-space only.
+- No supervisor's name in anything public (GitHub, filenames). The manuscript
+  author list is of course exempt.
+- Publication figures need high seed counts (6–10+).
+- **Parameter maps use `gridinterp.reggrid`, never `scipy.griddata`.** §9.
+- Before trusting a summary CSV, check it against the raw runs it came from. Two
+  separate staleness bugs in one day (§9).
+
+---
+
+## 9. Bugs found and fixed — do not reintroduce
+
+| bug | consequence | fix |
+|---|---|---|
+| `delta_tot` transformed on the periodic k-mesh under antiperiodic BC | inflated $\Delta_{\rm tot}$ 1.8–3.6×; drove $A_{\rm odd}$ from ~0 to ~1, i.e. "no d-wave" | `delta_tot(..., apx, apy)` builds the shifted mesh; periodic output unchanged to 1e-15 |
+| `run_bp_obs` never updated an adaptive trial | `trial="adaptive"` silently ran as fixed; two hours of Lieb runs tested nothing | update added between blocks, guarded on mode; fixed-trial output bit-for-bit identical |
+| `np.rot90` used as the C4 map | 0.42–0.63 for pure d-wave harmonics that must give 0 | explicit k-point lookup |
+| comparing **sorted** spectra to test for spin splitting | returns zero for both models — that degeneracy IS the altermagnetic compensation | compare bands at **fixed k** |
+| `scipy.griddata` on a rectangular (U, δ) grid | it triangulates, and each cell can split along either diagonal with both valid Delaunay. Qhull's tie-break is unstable: adding the U=5 row flipped **22 of 48** triangles below U=4.5 and moved contours at U=3 by up to **20%** of range. Dropping a row moved fields by up to **64%**. The figure was not a function of the data alone | `gridinterp.reggrid`, bilinear per cell. Verified identical to machine precision with and without the U=5 row. **`method="cubic"` is not a fix** — still moves 7.9%, and undershoots to −0.05 where the smallest measurement is +0.02 |
+| `griddata` silently triangulating across **missing** cells | `fig_dtot_prl`, `fig_dnk_fortran`, `fig_dtot_pairing_same_axes` drew filled 2D maps from the L=14 scan, which is a **cross, not a rectangle**: 16 of 35 cells never measured, so ~half of each figure was invented with nothing saying so | `reggrid` raises instead. Those three now fail loudly. Largest hole-free rectangle is the single column δ=0.2, so **no 2D map is defensible from L=14** — it supports two line cuts, Δ_tot vs U at δ=0.2 and vs δ at U=4 |
+| `chi_L12_vertex_summary.csv` stale | `eqtime_L12_U5.csv` sat in `chi_L12/` from 23 Aug with all 6 seeds and 7 δ but was never folded in, so **every vertex figure silently lost its top row** | rebuilt by `code/rebuild_chi_summary_251.py`; pre-U=5 file kept as `.bak-U4.5`, agrees on every shared cell |
+| believing the vertex was L=12 only | complete L=8 and L=10 vertex runs, same settings and full 7×7 grid, sat unused in `251:~/collected/eqt_b32/`. Only the U=4 slices had been pulled down, as `chi_fss_L{8,10}_U4.csv`. Cost: told the user a three-size vertex needed fresh runs when the data already existed | collected into `data/chi_fss_b32/`, summarised by `code/build_chi_summary_3L.py`. U=4 rows reproduce the old files to 0.00e+00 |
+
+### OPEN — Fortran vs Python equal-time disagreement
+
+**Unresolved. Do not build a claim on the equal-time U dependence until it is.**
+
+The crossover δ from the Fortran equal-time data runs 0.146 → 0.447 over U = 2 → 5.
+The Python equal-time slice of the *same* observable runs 0.137 → 0.201 and tracks
+the Python *integrated* result instead. They agree at U=2 (within 6%) and separate
+monotonically as U rises — the signature of a **systematic that scales with the
+interaction**, not a definitional mismatch. The channel definitions were matched
+deliberately against `mc2duph.f90` lines 1353–1355 and 1386.
+
+**Leading suspect: the Trotter step.** Python runs used `DT=0.05` (confirmed in
+every launch script under `code/cluster/`); Fortran production used Δτ = 0.01.
+Roughly 25× the Trotter error, and that error grows with U. Walker count (500 vs
+1000) and constrained-path trial bias share the same signature.
+
+**Decisive test:** rerun one column of the Python grid at Δτ = 0.01, U = 5, seven δ.
+If the crossover moves from ~0.20 toward ~0.45, Trotter is the cause.
+
+Note this also bears on Δ_tot, which comes from the same Fortran pipeline. The
+discrepancy is in the *pairing* observable, so it does not automatically implicate
+Δ_tot, but the same test settles both.
+
+**Consequence for the paper:** the vertex now covers the same three sizes, carries
+error bars, is the standard measure of a pairing instability, and has no such
+discrepancy. Recommendation on the table is to **drop the equal-time panel from the
+main figures and keep the data**, pending this test.
+
+### Superseded
+
+The **ridge-tracking result** (crossover follows the Δ_tot ridge, pooled r = +0.94,
+offset shrinking 0.096 → 0.052 → 0.021 with L, `code/check_crossover_ridge.py`) is
+an **equal-time** result. The vertex does not reproduce it. Do not quote it as
+general.

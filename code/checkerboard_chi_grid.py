@@ -2,7 +2,7 @@
 """Grid scan of the connected-vertex pairing susceptibility over the (n, delta) plane,
 optionally swept over U (the interaction-driven test).
 
-Produces one CSV per U value:  chi_grid_U{U}.csv  (columns: U,nup,delta,seed,chi_d,chi_dxy,n)
+Produces one CSV per U value:  chi_grid_U{U}.csv  (columns: U,nup,delta,seed,chi_son,chi_sext,chi_d,chi_dxy,n)
 and a combined chi_grid_all.csv. Each is valid input to plot_cb_fig14_chi_phasediagram.py.
 Seeds are independent statistical samples that get averaged per (n, delta) at plot time.
 
@@ -30,7 +30,12 @@ NW, NEQ, NBLK, BP, DT = 160, 60, 40, 16, 0.05
 NPROC = int(os.environ.get("NPROC", min(os.cpu_count(), 32)))
 
 US     = [0.0, 2.0, 4.0, 6.0, 8.0]         # <-- the U-scan (U=0 is the interaction-off control)
-NUPS   = [4, 6, 8, 10, 12, 14, 16, 18]     # nup=ndn; n = 2*nup/(L*L)
+# fillings: survey grid, or closed-shell preset per L (see docs/closed_shell_fillings.md).
+# FILLINGS=survey (default) -> broad (n,delta) map; FILLINGS=closed -> non-degenerate trial only.
+SURVEY_NUPS  = [4, 6, 8, 10, 12, 14, 16, 18]                # nup=ndn; n = 2*nup/(L*L)
+CLOSED_SHELL = {6: [13], 8: [25], 10: [37], 14: [57, 61, 73]}  # gapped Fermi level at all delta
+FILLINGS_MODE = os.environ.get("FILLINGS", "survey")
+NUPS   = CLOSED_SHELL.get(L, SURVEY_NUPS) if FILLINGS_MODE == "closed" else SURVEY_NUPS
 DELTAS = [0.0, 0.1, 0.2, 0.3, 0.4]
 NSEED  = int(os.environ.get("NSEED", 3))   # seeds per point; quick=3, production=6+
 SEEDS  = list(range(1, NSEED + 1))         # independent samples -> mean + error bar
@@ -41,13 +46,19 @@ if len(sys.argv) > 1:
 
 
 def run_pair(args):
-    """One CP-AFQMC point -> (U, nup, delta, seed, chi_d_vertex, chi_dxy_vertex)."""
+    """One CP-AFQMC point -> connected-vertex susceptibility in 4 channels:
+    on-site s (son), extended-s (sext), dx2-y2 (d), dxy."""
     U, nup, delta, seed = args
     K = cb.checkerboard_hopping(L, L, T0, T1, -delta)
-    Fd = cb.nn_bond_factors(L, L)[1]; Fdxy = cb.diag_bond_factors(L, L)
+    Fs, Fd = cb.nn_bond_factors(L, L)          # extended-s (NN, all +1), dx2-y2
+    Fdxy = cb.diag_bond_factors(L, L)          # dxy (sin kx sin ky)
+    Fon = np.eye(L * L)                         # on-site s (local pair)
     q = CPMC(L, L, nup, nup, U=U, dt=DT, nwalkers=NW, seed=seed, K=K, K_dn=None)
-    r = cb.run_bp_chid_cb(q, {"d": Fd, "dxy": Fdxy}, nequil=NEQ, nblocks=NBLK, bp=BP)
-    return (U, nup, delta, seed, r["chi_d_vertex"], r["chi_dxy_vertex"])
+    r = cb.run_bp_chid_cb(q, {"son": Fon, "sext": Fs, "d": Fd, "dxy": Fdxy},
+                          nequil=NEQ, nblocks=NBLK, bp=BP)
+    return (U, nup, delta, seed,
+            r["chi_son_vertex"], r["chi_sext_vertex"],
+            r["chi_d_vertex"], r["chi_dxy_vertex"])
 
 
 if __name__ == "__main__":
@@ -60,7 +71,8 @@ if __name__ == "__main__":
         print(f"[U={U}] running {len(jobs)} points ...", flush=True)
         with Pool(NPROC) as pool:
             rows = pool.map(run_pair, jobs)
-        df = pd.DataFrame(rows, columns=["U", "nup", "delta", "seed", "chi_d", "chi_dxy"])
+        df = pd.DataFrame(rows, columns=["U", "nup", "delta", "seed",
+                                         "chi_son", "chi_sext", "chi_d", "chi_dxy"])
         df["n"] = 2 * df["nup"] / (L * L)
         out = f"chi_grid_U{U:g}.csv"
         df.to_csv(out, index=False)          # write per-U so partial progress survives
