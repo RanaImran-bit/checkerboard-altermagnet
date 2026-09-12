@@ -66,6 +66,15 @@ FIG = {
  r"where $\Delta_{\mathrm{tot}}/N$ falls to about twice the $\delta=0$ floor and "
  r"the correlation with $\sin k_x \sin k_y$ is lost. At $\delta=0.3$ the decay "
  r"with size is steady. The $\delta=0.2$ column persists at every size."),
+"fig06_fss_hscan": (
+ r"(a) $\Delta_{\mathrm{tot}}/N$ against the symmetry-breaking field $h$ for "
+ r"$L=8$ to $16$ at $U=4$ and $\delta=0.3$, with the straight-line fits over the "
+ r"three smallest fields that define the $h\to0$ intercept. (b) those intercepts "
+ r"against $1/L$. The two curves are fits to the $L\leq14$ points alone, linear "
+ r"in $1/L$ and in $1/L^2$, extended to $L=16$. They predict $0.01325$ and "
+ r"$0.01457$ there, and the measured value is $0.00733 \pm 0.00106$. The drop "
+ r"from $L=14$ is a factor of $0.43$ where a $1/L$ law gives $0.88$, so the "
+ r"nonzero intercept seen at each individual size is a finite-size effect."),
 "fig_overlay_4L": (
  r"The four lattice sizes overlaid, so that the size dependence of "
  r"$\Delta_{\mathrm{tot}}/N$ can be read at fixed $U$ and $\delta$."),
@@ -112,7 +121,11 @@ FIG = {
  r"lattice size."),
 }
 
-def figure(key, width=r"\columnwidth", star=False, pos="tb"):
+def figure(key, width=r"\columnwidth", star=False, pos=None):
+    # figure* is restricted to page tops in two-column revtex, so give the wide
+    # ones a float page as well or they queue up and LaTeX reports them stuck
+    if pos is None:
+        pos = "tp" if star else "htbp"
     env = "figure*" if star else "figure"
     return ("\n\\begin{%s}[%s]\n\\includegraphics[width=%s]{figures/%s}\n"
             "\\caption{%s}\n\\label{fig:%s}\n\\end{%s}\n"
@@ -300,7 +313,8 @@ PLAN = {
                          ("fig_dtot_6delta", True), ("fig_dtot_maps_with_cuts", False)],
                     "Null control at vanishing anisotropy": [("fig05_null_control", False)],
                     "Finite-size behavior of the magnetic correlations":
-                        [("fig_smallU_L8to14_bg", True), ("fig_overlay_4L", False)],
+                        [("fig06_fss_hscan", True), ("fig_smallU_L8to14_bg", True),
+                         ("fig_overlay_4L", False)],
                     "Pairing in the same representation":
                         [("fig09_pairing_fss", True), ("fig_dchannels_eqtime_vs_vertex", True),
                          ("fig_d_channels_together", False)],
@@ -325,7 +339,7 @@ PLAN = {
                          ("fig_overlay_4L", False)],
                     "Null control at vanishing anisotropy": [("fig05_null_control", False)],
                     "Finite-size behavior of the magnetic correlations":
-                        [("fig_smallU_L8to14_bg", True)]},
+                        [("fig06_fss_hscan", True), ("fig_smallU_L8to14_bg", True)]},
             apps = ["Trial wave function and the selection of the constrained path",
                     "Convergence in projection length", "Boundary conditions"]),
 }
@@ -421,6 +435,15 @@ def build(tag):
     pre = re.sub(r"\\begin\{abstract\}.*?\\end\{abstract\}",
                  lambda m: "\\begin{abstract}%s\\end{abstract}" % ABSTRACT[tag],
                  pre, flags=re.S)
+    # loosen the float parameters: the defaults refuse a page that is mostly
+    # figures, which is exactly what a 15-figure article needs
+    pre = pre.replace("\\begin{document}",
+        "\\renewcommand{\\topfraction}{0.9}\n"
+        "\\renewcommand{\\bottomfraction}{0.8}\n"
+        "\\renewcommand{\\textfraction}{0.07}\n"
+        "\\renewcommand{\\floatpagefraction}{0.7}\n"
+        "\\setcounter{topnumber}{3}\n"
+        "\\setcounter{totalnumber}{4}\n\n\\begin{document}")
     pre = pre.replace("%  DRAFT v1 -- Physical Review B",
                       "%%  Physical Review B -- version %s" % tag)
 

@@ -12,6 +12,13 @@
 \usepackage{graphicx}
 \usepackage{bm}
 
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.7}
+\setcounter{topnumber}{3}
+\setcounter{totalnumber}{4}
+
 \begin{document}
 
 \title{Emergent altermagnetic correlations and $d_{xy}$ pairing in the
@@ -182,25 +189,25 @@ mirror at every parameter set, which is the $d_{xy}$ channel. No parameter set
 is classified as $d_{x^2-y^2}$.
 
 
-\begin{figure}[tb]
+\begin{figure}[htbp]
 \includegraphics[width=\columnwidth]{figures/fig03_dtot_emergence}
 \caption{Momentum-space spin polarization $\Delta_{\mathrm{tot}}/N$ over the $(U,\delta)$ plane at half filling, $L=12$. The $U=0$ column is identically zero at every anisotropy, which is required because the hopping in Eq.~(\ref{eq:H}) is spin independent. The signal appears only once the interaction is turned on, which is the emergent route rather than the built-in one.}
 \label{fig:fig03_dtot_emergence}
 \end{figure}
 
-\begin{figure*}[tb]
+\begin{figure*}[tp]
 \includegraphics[width=\textwidth]{figures/fig04_symmetry}
 \caption{Symmetry classification of $\Delta n(\bm{k})$ for all 126 interacting parameter sets at $L=8$, $10$ and $12$. The ratios $A_{\mathrm{odd}}$ of Eq.~(\ref{eq:aodd}) and $M_{\mathrm{odd}}$ of Eq.~(\ref{eq:modd}) place every cell at $A_{\mathrm{odd}}\simeq0$ and $M_{\mathrm{odd}}\simeq2$, which is odd under $C_4$ and even under the diagonal mirror and identifies the $d_{xy}$ channel. No cell is classified as $d_{x^2-y^2}$.}
 \label{fig:fig04_symmetry}
 \end{figure*}
 
-\begin{figure*}[tb]
+\begin{figure*}[tp]
 \includegraphics[width=\textwidth]{figures/fig_dtot_6delta}
 \caption{$\Delta_{\mathrm{tot}}/N$ against $U$ at six anisotropies from $\delta=0.1$ to $0.6$, for $L=8$, $10$, $12$ and $14$. The background shades the value of $\Delta_{\mathrm{tot}}/N$ on the same scale as the heat maps so that the two presentations can be read against each other. $L=14$ forms a curve only for $\delta\leq0.3$.}
 \label{fig:fig_dtot_6delta}
 \end{figure*}
 
-\begin{figure}[tb]
+\begin{figure}[htbp]
 \includegraphics[width=\columnwidth]{figures/fig_dtot_maps_with_cuts}
 \caption{$\Delta_{\mathrm{tot}}/N$ over the $(U,\delta)$ plane with the cuts used in the preceding figure drawn on the map, $L=12$.}
 \label{fig:fig_dtot_maps_with_cuts}
@@ -236,7 +243,7 @@ times this floor.
 % data/fortran_L12_all49.csv, delta=0.3
 
 
-\begin{figure}[tb]
+\begin{figure}[htbp]
 \includegraphics[width=\columnwidth]{figures/fig05_null_control}
 \caption{Null control at vanishing anisotropy, logarithmic axis. At $\delta=0$ the two sublattices are related by a translation and $\Delta_{\mathrm{tot}}$ must vanish by symmetry at any $U$, so what is measured there is the statistical floor of the estimator at production settings. The floor is $6.3(2)\times10^{-4}$ per site and the measured signal at $\delta=0.3$ sits between 23 and 114 times above it.}
 \label{fig:fig05_null_control}
@@ -259,8 +266,8 @@ between $0.39$ and $0.54$, against $0.44$ for a pure $1/N$ decay. A structure
 factor that scales as $1/N$ carries no long-range order, so this alone leaves
 the correlations short ranged on the lattices reached here.
 
-The second is the extrapolation of the staggered moment to vanishing field. The
-$h \to 0$ intercept is nonzero at each individual size and decreases
+The second is the extrapolation of the polarization to vanishing field. The
+$h \to 0$ intercept of $\Delta_{\mathrm{tot}}/N$ is nonzero at each individual size and decreases
 monotonically with $L$, taking the values $0.03269$, $0.02363$, $0.01845$, and
 $0.01714$ at $L = 8$, $10$, $12$, and $14$. On those four points alone the
 extrapolation is ambiguous. A fit in $1/L^2$ gives $\chi^2/\mathrm{dof} = 2.1$
@@ -281,13 +288,19 @@ scaling of the correlation length.
 
 
 
-\begin{figure*}[tb]
+\begin{figure*}[tp]
+\includegraphics[width=\textwidth]{figures/fig06_fss_hscan}
+\caption{(a) $\Delta_{\mathrm{tot}}/N$ against the symmetry-breaking field $h$ for $L=8$ to $16$ at $U=4$ and $\delta=0.3$, with the straight-line fits over the three smallest fields that define the $h\to0$ intercept. (b) those intercepts against $1/L$. The two curves are fits to the $L\leq14$ points alone, linear in $1/L$ and in $1/L^2$, extended to $L=16$. They predict $0.01325$ and $0.01457$ there, and the measured value is $0.00733 \pm 0.00106$. The drop from $L=14$ is a factor of $0.43$ where a $1/L$ law gives $0.88$, so the nonzero intercept seen at each individual size is a finite-size effect.}
+\label{fig:fig06_fss_hscan}
+\end{figure*}
+
+\begin{figure*}[tp]
 \includegraphics[width=\textwidth]{figures/fig_smallU_L8to14_bg}
 \caption{Behavior at small $U$ for $\delta=0.1$, $0.2$ and $0.3$ across $L=8$ to $L=14$. The feature near $U=2$ does not survive to $L=14$ at $\delta=0.1$, where $\Delta_{\mathrm{tot}}/N$ falls to about twice the $\delta=0$ floor and the correlation with $\sin k_x \sin k_y$ is lost. At $\delta=0.3$ the decay with size is steady. The $\delta=0.2$ column persists at every size.}
 \label{fig:fig_smallU_L8to14_bg}
 \end{figure*}
 
-\begin{figure}[tb]
+\begin{figure}[htbp]
 \includegraphics[width=\columnwidth]{figures/fig_overlay_4L}
 \caption{The four lattice sizes overlaid, so that the size dependence of $\Delta_{\mathrm{tot}}/N$ can be read at fixed $U$ and $\delta$.}
 \label{fig:fig_overlay_4L}
@@ -324,19 +337,19 @@ pairing vertex is largest in $d_{xy}$ over the anisotropy range where that
 classification holds most strongly.
 
 
-\begin{figure*}[tb]
+\begin{figure*}[tp]
 \includegraphics[width=\textwidth]{figures/fig09_pairing_fss}
 \caption{Time-integrated pairing vertex at half filling. (a) the four channels at $L=12$ and $U=4$, (b) the $d_{xy}$ vertex against $\delta$ for $L=8$, $10$ and $12$, and (c) the same quantity against $1/N$. The vertex is the interaction-induced part of the pair-field correlator and vanishes identically at $U=0$ in all four channels. $d_{xy}$ grows with system size at every interaction strength studied.}
 \label{fig:fig09_pairing_fss}
 \end{figure*}
 
-\begin{figure*}[tb]
+\begin{figure*}[tp]
 \includegraphics[width=\textwidth]{figures/fig_dchannels_eqtime_vs_vertex}
 \caption{The two $d$ channels measured equal time (left) and time integrated (right) at $L=12$. The equal-time correlator carries a large uncorrelated part, so the vertex is the measure used for the claims in the text.}
 \label{fig:fig_dchannels_eqtime_vs_vertex}
 \end{figure*}
 
-\begin{figure}[tb]
+\begin{figure}[htbp]
 \includegraphics[width=\columnwidth]{figures/fig_d_channels_together}
 \caption{Both $d$ channels in the $(U,\delta)$ plane at $L=12$. $d_{x^2-y^2}$ is positive everywhere, so it is never repulsive even where it is subdominant, and $d_{xy}$ is the larger of the two above $\delta\simeq0.19$.}
 \label{fig:fig_d_channels_together}
@@ -372,25 +385,25 @@ $d_{x^2-y^2}$ channel. The two channels respond to the magnetic signal with
 opposite sign at fixed anisotropy and fixed interaction.
 
 
-\begin{figure*}[tb]
+\begin{figure*}[tp]
 \includegraphics[width=\textwidth]{figures/fig_2row_eqtime_vertex_3L}
 \caption{Equal-time pair correlator (top row) and time-integrated vertex (bottom row) for $L=8$, $10$ and $12$. The channel crossover straightens and its spread across $U$ narrows along the vertex row, which is the behavior expected of a quantity fixed by the lattice geometry rather than by the coupling.}
 \label{fig:fig_2row_eqtime_vertex_3L}
 \end{figure*}
 
-\begin{figure*}[tb]
+\begin{figure*}[tp]
 \includegraphics[width=\textwidth]{figures/fig_ddiff_vertex_3L}
 \caption{Difference between the $d_{xy}$ and $d_{x^2-y^2}$ vertices over the $(U,\delta)$ plane at $L=8$, $10$ and $12$. The zero contour is the crossover anisotropy $\delta_c$, which is nearly flat in $U$ and whose spread across the interaction strengths studied falls from $0.148$ to $0.049$ to $0.028$ as the lattice grows.}
 \label{fig:fig_ddiff_vertex_3L}
 \end{figure*}
 
-\begin{figure*}[tb]
+\begin{figure*}[tp]
 \includegraphics[width=\textwidth]{figures/fig_dchannels_over_dtot}
 \caption{Contours of the two $d$ vertices drawn over the measured $\Delta_{\mathrm{tot}}/N$. The pairing channel that leads changes across the same region of the plane in which the magnetic signal changes character, so two independently measured quantities turn over together.}
 \label{fig:fig_dchannels_over_dtot}
 \end{figure*}
 
-\begin{figure*}[tb]
+\begin{figure*}[tp]
 \includegraphics[width=\textwidth]{figures/fig_pairing_on_dtot_3L}
 \caption{Pairing contours on the $\Delta_{\mathrm{tot}}/N$ background for $L=8$, $10$ and $12$, showing that the relation between the two survives the change of lattice size.}
 \label{fig:fig_pairing_on_dtot_3L}

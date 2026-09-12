@@ -12,6 +12,13 @@
 \usepackage{graphicx}
 \usepackage{bm}
 
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.7}
+\setcounter{topnumber}{3}
+\setcounter{totalnumber}{4}
+
 \begin{document}
 
 \title{Interaction-induced $d_{xy}$ pairing in the checkerboard Hubbard model}
@@ -159,31 +166,31 @@ which the vertex is appreciable, and it does so at every interaction strength
 studied.
 
 
-\begin{figure*}[tb]
+\begin{figure*}[tp]
 \includegraphics[width=\textwidth]{figures/fig09_pairing_fss}
 \caption{Time-integrated pairing vertex at half filling. (a) the four channels at $L=12$ and $U=4$, (b) the $d_{xy}$ vertex against $\delta$ for $L=8$, $10$ and $12$, and (c) the same quantity against $1/N$. The vertex is the interaction-induced part of the pair-field correlator and vanishes identically at $U=0$ in all four channels. $d_{xy}$ grows with system size at every interaction strength studied.}
 \label{fig:fig09_pairing_fss}
 \end{figure*}
 
-\begin{figure*}[tb]
+\begin{figure*}[tp]
 \includegraphics[width=\textwidth]{figures/fig_dchannels_eqtime_vs_vertex}
 \caption{The two $d$ channels measured equal time (left) and time integrated (right) at $L=12$. The equal-time correlator carries a large uncorrelated part, so the vertex is the measure used for the claims in the text.}
 \label{fig:fig_dchannels_eqtime_vs_vertex}
 \end{figure*}
 
-\begin{figure}[tb]
+\begin{figure}[htbp]
 \includegraphics[width=\columnwidth]{figures/fig_d_channels_together}
 \caption{Both $d$ channels in the $(U,\delta)$ plane at $L=12$. $d_{x^2-y^2}$ is positive everywhere, so it is never repulsive even where it is subdominant, and $d_{xy}$ is the larger of the two above $\delta\simeq0.19$.}
 \label{fig:fig_d_channels_together}
 \end{figure}
 
-\begin{figure}[tb]
+\begin{figure}[htbp]
 \includegraphics[width=\columnwidth]{figures/fig_dsum_L12}
 \caption{Sum of the $d_{xy}$ and $d_{x^2-y^2}$ vertices at $L=12$, showing the total weight carried by the two sign-changing channels.}
 \label{fig:fig_dsum_L12}
 \end{figure}
 
-\begin{figure}[tb]
+\begin{figure}[htbp]
 \includegraphics[width=\columnwidth]{figures/fig_ddiff_L12}
 \caption{Difference of the $d_{xy}$ and $d_{x^2-y^2}$ vertices at $L=12$, on the same colour scale as the preceding figure.}
 \label{fig:fig_ddiff_L12}
@@ -217,13 +224,13 @@ anisotropy at fixed interaction, so they are not simply rising and falling
 together with the overall pairing scale.
 
 
-\begin{figure*}[tb]
+\begin{figure*}[tp]
 \includegraphics[width=\textwidth]{figures/fig_2row_eqtime_vertex_3L}
 \caption{Equal-time pair correlator (top row) and time-integrated vertex (bottom row) for $L=8$, $10$ and $12$. The channel crossover straightens and its spread across $U$ narrows along the vertex row, which is the behavior expected of a quantity fixed by the lattice geometry rather than by the coupling.}
 \label{fig:fig_2row_eqtime_vertex_3L}
 \end{figure*}
 
-\begin{figure*}[tb]
+\begin{figure*}[tp]
 \includegraphics[width=\textwidth]{figures/fig_ddiff_vertex_3L}
 \caption{Difference between the $d_{xy}$ and $d_{x^2-y^2}$ vertices over the $(U,\delta)$ plane at $L=8$, $10$ and $12$. The zero contour is the crossover anisotropy $\delta_c$, which is nearly flat in $U$ and whose spread across the interaction strengths studied falls from $0.148$ to $0.049$ to $0.028$ as the lattice grows.}
 \label{fig:fig_ddiff_vertex_3L}
